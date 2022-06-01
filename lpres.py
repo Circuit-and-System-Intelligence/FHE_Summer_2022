@@ -14,6 +14,8 @@ import sys
 from poly import Poly
 
 def main():
+	# this main function is using the lpr() class
+	# encryption scheme
 
 	test_addition()
 	print('\n\n')
@@ -50,31 +52,39 @@ def main():
 class LPR():
 
 	def __init__(self,q=2**15,t=2**8,n=2**4,fn=None,T=None):
+		# this init method will initialize the important variables
+		# needed for this encryption scheme
 		self.q = q
 		self.t = t
 		self.n = n
+		# this will set the polynomial for the ring, if not declared then will be
+		# the polynomial 1 + x^n
 		self.fn = fn
 		if (self.fn == None):
 			self.fn = [1] + [0]*(n-1) + [1]
 		self.fn = Poly(self.fn)
+		# this will set the variable T, as needed for relinearization1 for BFV
 		self.T = T
 		if (self.T == None):
 			# if not defined, set T as the square root of q, rounded to highest up
 			self.T = int(np.ceil(np.sqrt(self.q)))
+
+		# this will set the keys as none, but will then immediately generate
+		# a public key, a private key, and a relinearization key
 		self.sk = None
 		self.pk = None
+		self.rlk = None
 		self.gen_keys()
 
 	def gen_keys(self):
+		# calls the different functions to generate the keys
 		self.gensk()
 		self.genpk()
 		self.genrlk1()
 		
 	def gensk(self):
-		#sk = []
-		#for i in range(self.n):
-		#	sk.append( np.random.randint(0,2) )
-		#self.sk = Poly(sk)
+		# call the gen_binary_poly key to create a polynomial
+		# of only 0's and 1's for the secret key
 		self.sk = self.gen_binary_poly()
 		#self.sk = self.gen_normal_poly()
 		return
@@ -82,28 +92,28 @@ class LPR():
 	def genpk(self):
 		if (self.sk == None):
 			return
-		#print('ran here')
-		#a = []
-		#for i in range(self.n):
-		#	a.append( np.random.randint(0,self.q) )
-		#a = Poly(a)
+		# generate a uniformly distributed polynomial with coefs
+		# from [0,q)
 		a = self.gen_uniform_poly()
 
+		# create a new polynomial _a which is -a
 		_a = []
 		for i in a:
 			_a.append(-1*i)
 		_a = Poly(_a)
 
-		#e = []
-		#for i in range(self.n):
-		#	e.append( int(np.random.normal(0,2)) )
-		#e = Poly(e)
+		# generate a normally distributed polynomial with integers
+		# generated from a center of 0 and std of 2
 		e = self.gen_normal_poly()
+		# then set e = -e
 		for ind, i in enumerate(e):
 			e[ind] = -1 * i
 
+		# create b from (-a * sk) - e
 		b = self.polyadd( self.polymult(_a, self.sk),e)
 
+		# set the public key to the tuple (b,a)
+		# or (-[a*sk + e], a)
 		self.pk = (b,a)
 		return
 	
@@ -132,6 +142,7 @@ class LPR():
 	
 	def encrypt(self,pt=0):
 		# encode plaintext into a plaintext polynomial
+		# create polynomial m, which is pt%q
 		m = [pt]
 		m = Poly(m)
 		m = m % self.q
@@ -139,24 +150,33 @@ class LPR():
 		delta = self.q // self.t
 		scaled_m = m.copy()
 		scaled_m[0] = delta * scaled_m[0] % self.q
+		# create a new m, which is scaled my q//t % q
+		# generated new error polynomials
 		e1 = self.gen_normal_poly()
 		e2 = self.gen_normal_poly()
 		u = self.gen_binary_poly()
+		# create c0 = pk[0]*u + e1 + scaled_m
 		ct0 = self.polyadd( self.polyadd( self.polymult( self.pk[0], u), e1), scaled_m)
 
+		# create c1 = pk[1]*u + e2
 		ct1 = self.polyadd( self.polymult( self.pk[1], u), e2)
 
 		return (ct0, ct1)
 
 	def decrypt(self,ct):
+		# decrypt the cipher text to get the plaintext equivalent
 
+		# scaled_pt = ct[1]*sk + ct[0]
 		scaled_pt = self.polyadd( self.polymult( ct[1], self.sk ), ct[0] )
 		decrypted_pt = []
+		# scale each coefficient by t/q % t
 		for ind, i in enumerate( scaled_pt ):
 			decrypted_pt.append(  round(i * self.t / self.q ) % self.t )
 		
+		# create a polynomial from the list
 		decrypted_pt = Poly(decrypted_pt)
 
+		# return the first term of the polynomial, which is the plaintext
 		return int(decrypted_pt[0])
 
 	def ctadd(self, x, y):
@@ -170,6 +190,9 @@ class LPR():
 		return ct
 
 	def ctmult(self, x, y, type=1):
+		# multiply cipher texts X and Y and return ciphertext X*Y
+		# still work in progress, not working yet
+
 		# calculate c0 
 		c0 = []
 		mult0 = self.polymult( x[0], y[0] )
@@ -194,6 +217,7 @@ class LPR():
 		return self.relin1(c0,c1,c2)
 
 	def relin1(self,c0,c1,c2):
+		# still work in progress, not completed
 		# calculate c2T, which would be c2 in base T
 		'''
 		c2T = []
@@ -226,6 +250,8 @@ class LPR():
 		return (_c0, _c1)
 
 	def mod(self,poly):
+		# calculate the modulus of poly by q
+		# with answer given back in range (-q/2,q/2]
 		copy = poly.poly.copy()
 		for ind,i in enumerate(copy):
 			i = i % self.q
@@ -235,6 +261,8 @@ class LPR():
 		return Poly(copy)
 
 	def polyadd(self, x, y):
+		# add two polynomials together and keep them 
+		# within the polynomial ring
 		z = x + y
 		quo,rem = (z / self.fn)
 		z = rem
@@ -245,11 +273,9 @@ class LPR():
 		return z
 
 	def polymult(self, x, y):
+		# multiply two polynomials together and keep them 
+		# within the polynomial ring
 		z = x * y
-		#print(f'print here: z polynomial', end=': ')
-		#z.polyprint()
-		#print(f'print here: fn polynomial', end=': ')
-		#self.fn.polyprint()
 		quo, rem = (z / self.fn)
 		z = rem
 		for ind, i in enumerate(z):
@@ -259,6 +285,10 @@ class LPR():
 		return z
 
 	def gen_normal_poly(self,c=0,std=2):
+		# generate a random polynomial of degree n-1
+		# with coefficients selected from normal distribution
+		# with center at 0 and std of 2. Each term is rounded
+		# down to nearest integer
 		a = []
 		for i in range(self.n):
 			a.append( int(np.random.normal(c,std)) )
@@ -266,6 +296,8 @@ class LPR():
 		return a
 
 	def gen_binary_poly(self):
+		# generate a random polynomial of degree n-1
+		# with coefficients ranging from [0,1]
 		a = []
 		for i in range(self.n):
 			a.append( np.random.randint(0,2) )
@@ -273,6 +305,8 @@ class LPR():
 		return a
 
 	def gen_uniform_poly(self,q=None):
+		# generate a random polynomial of degree n-1
+		# with coefficients ranging from [0,q)
 		if (q == None):
 			q = self.q
 		a = []
@@ -283,6 +317,9 @@ class LPR():
 		return a
 
 	def poly_base_change(self,poly,q,T):
+		# change the base of a polynomial and
+		# return multiple polynomials of new base
+		# haven't tested this, don't know if it works
 		l = int(np.floor(np.log2(q)/np.log2(T)))
 		cpy = poly.copy()
 		base_poly = []
