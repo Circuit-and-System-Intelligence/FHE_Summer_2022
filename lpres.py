@@ -18,8 +18,9 @@ def main():
 	# encryption scheme
 
 	test_addition()
-	print('\n\n')
+	print('\n')
 	test_multiplication()
+	print('\n')
 	#lpr_test()
 	#ring_test()
 	
@@ -268,8 +269,8 @@ class LPR():
 		z = rem
 		for ind, i in enumerate(z):
 			z[ind] = round(i)
-		#z = z % self.q
-		z = self.mod(z)
+		z = z % self.q
+		#z = self.mod(z)
 		return z
 
 	def polymult(self, x, y):
@@ -280,8 +281,8 @@ class LPR():
 		z = rem
 		for ind, i in enumerate(z):
 			z[ind] = round(i)
-		#z = z % self.q
-		z = self.mod(z)
+		z = z % self.q
+		#z = self.mod(z)
 		return z
 
 	def gen_normal_poly(self,c=0,std=2):
@@ -488,7 +489,7 @@ def test_addition():
 def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
-	lpr = LPR(T=4)
+	lpr = LPR()
 
 	# generate the two random numbers
 	x = 0
@@ -509,6 +510,25 @@ def test_multiplication():
 	print(f'Multiplication test: { answer == (x*y) }')
 	return
 
+def test_base_change():
+	# this function will test the base changing 
+	# function in the lpr() class
+
+	# will first test this with the base as 10
+	lpr = LPR(T=10)
+
+	print(f'Public Key[0]:',end=' ')
+	lpr.pk[0].polyprint()
+
+	base = lpr.poly_base_change(lpr.pk[0],lpr.q,lpr.T)
+
+	print(f'New polynomials for base change')
+	for p in base:
+		p.polyprint()
+
+	return
 
 if __name__ == '__main__':
+	#test_base_change()
 	main()
+	pass
