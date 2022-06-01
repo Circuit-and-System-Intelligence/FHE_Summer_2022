@@ -11,6 +11,9 @@
 class Poly():
 
 	def __init__(self,poly=None):
+		# initiliazed the polynomial to an array that is
+		# passed in by the user. If nothing is passed then 
+		# set the polynomial to 0
 		self.poly = poly
 		if (poly == None):
 			self.poly = [0]
@@ -27,10 +30,16 @@ class Poly():
 		return
 
 	def __iter__(self):
+		# create an iter value so that for loops 
+		# can work on the polynomial
 		self.n = 0
 		return self
 
 	def __next__(self):
+		# this method will help iterate through the 
+		# polynomial with a for loop
+		# go through the polynomial until it reaches
+		# the end of the polynomial
 		if self.n < self.size():
 			res = self.poly[self.n]
 			self.n += 1
@@ -39,6 +48,8 @@ class Poly():
 			raise StopIteration
 	
 	def next(self):
+		# same function as __next__, was necessary for
+		# Python 2 but is useless in Python 3
 		if self.n < self.size():
 			res = self.poly[self.n]
 			self.n += 1
@@ -77,16 +88,17 @@ class Poly():
 		return Poly(res)
 
 	def __mul__(self,other):
-		# mult two polynomials together
-		#self.zero_deg()
-		#other.zero_deg()
+		# multiply two polynomials together
 		sz = self.deg() + other.deg() + 1
 		res = [0] * sz
 
+		# loop through the polynomials so that each 
+		# term is multiplied through the other polynomial
 		for ind,i in enumerate(self.poly):
 			for jnd,j in enumerate(other.poly):
 				res[ind+jnd] += (i*j)
 		
+		# use zero_deg to get rid of leading zeroes
 		ret = Poly(res)
 		ret.zero_deg()
 
@@ -95,7 +107,8 @@ class Poly():
 	def __truediv__(self,other):
 		# div two polynomials together
 		# return quotient and remainder
-		#other.zero_deg()
+		# copy the polynomials so that the arguments
+		# are not affected by this computation
 		se = self.copy()
 		ot = other.copy()
 		se.zero_deg()
@@ -103,21 +116,29 @@ class Poly():
 		quo = [0]*(se.deg()-ot.deg()+1)
 		rem = [0]*(ot.deg())
 
+		# if the divisor's degree is greater than the dividend's
+		# then return the 0 polynomial and the dividend
+		# as the divisor
 		if ( ot.deg() > se.deg() ):
 			copy = se.copy()
 			return (Poly(),copy)
 
 		copy = se.poly.copy()
 
+		# set error if dividing by 0
 		if ( ot[-1] == 0 and ot.size() == 1):
 			raise ValueError("Cannot divide by 0")
 
+		# use a for loop to find leading coefficient of quotient
+		# then substract the dividend by the divisor*quotient
+		# start from biggest term, going to smallest term
 		for i in range(se.deg()-ot.deg(),-1,-1):
 			coef = copy[ot.deg() + i] / ot[-1] 
 			quo[i] = coef
 			for j in range(ot.size()):
 				copy[i+j] -= ot[j] * coef
 		
+		# add what remains from dividend to the remainder polynomial
 		for i in range(ot.deg()):
 			rem[i] += copy[i]
 
@@ -145,9 +166,12 @@ class Poly():
 		return len(self.poly)-1
 
 	def size(self):
+		# returns the size of the polynomial
+		# (the length of the list)
 		return len(self.poly)
 
 	def polyprint(self):
+		# print the list in the polynomial
 		print(self.poly)
 		return
 
@@ -160,6 +184,7 @@ class Poly():
 		return
 
 	def floor(self):
+		# this function will turn each of the coefficients into integers
 		for ind,i in enumerate(self.poly):
 			self.poly[ind] = int(i)
 
@@ -215,6 +240,7 @@ def main():
 	return
 
 def testing_copy():
+	# testing the copy method in the class
 
 	X = Poly([1,2,3])
 
