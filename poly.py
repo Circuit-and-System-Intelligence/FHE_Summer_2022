@@ -47,6 +47,24 @@ class Poly():
 		else:
 			raise StopIteration
 	
+	def __eq__(self,other):
+		# this method will determine if two
+		# polynomials are equal to each other
+		if (type(other) != type(self)):
+			return False
+		
+		if ( other == None ):
+			return False
+
+		if ( self.size() != other.size() ):
+			return False
+
+		for i,j in zip(self,other):
+			if i != j:
+				return False
+
+		return True
+	
 	def next(self):
 		# same function as __next__, was necessary for
 		# Python 2 but is useless in Python 3
@@ -254,6 +272,26 @@ def testing_copy():
 	X.polyprint()
 	Y.polyprint()
 
+def test_equal():
+
+	x = Poly([1,1,2,2])
+	y = Poly([2,2,4,4])
+
+	z = x + x
+
+	print(f'X == Y: {x == y}')
+	print(f'X == Z: {x == z}')
+	print(f'Z == Y: {z == y}')
+
+	print(f'X:',end=' ')
+	x.polyprint()
+	print(f'Y:',end=' ')
+	y.polyprint()
+	print(f'Z:',end=' ')
+	z.polyprint()
+
 if __name__ == '__main__':
 	main()
 	#testing_copy()
+	#test_equal()
+	pass
