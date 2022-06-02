@@ -124,22 +124,45 @@ class LPR():
 		self.l = int(np.floor(np.log2(self.q)/np.log2(self.T)))
 
 		# create the different masks for the rlk key
-		rlk = []
+		self.rlk = []
+		ss = self.polymult(self.sk,self.sk)
+		#a = self.gen_uniform_poly()
+		#e = self.gen_normal_poly()
 		for i in range(self.l+1):
+			# generate the different random polynomials needed
 			a = self.gen_uniform_poly()
 			e = self.gen_normal_poly()
+			_a = a.copy()
+			for jnd, j in enumerate(_a):
+				_a[jnd] = -1 * j
+			for jnd, j in enumerate(e):
+				e[jnd] = -1 * j
+
+			b = self.polyadd( self.polymult(_a, self.sk), e)
+			'''
 			b = self.polyadd( self.polymult(a, self.sk), e)
 			for jnd, j in enumerate(b):
 				b[jnd] = -1 * j
-			_T = self.T ** i
-			s2 = self.polymult(self.sk,self.sk)
+				'''
+			T = self.T ** i
+			'''
+			print(f'T = {T}')
+			print('sk:',end=' ')
+			self.sk.polyprint()
+			print("sk^2:",end=' ')
+			ss.polyprint()
+			'''
+			s2 = ss.copy()
 			for jnd, j in enumerate(s2):
-				s2[jnd] = j * _T % self.q
+				s2[jnd] = j * T 
+			#print("T*sk^2:",end=' ')
+			#s2.polyprint()
 			b = self.polyadd( b, s2 )
-			rlk.append( (b,a) )
+			self.rlk.append( (b,a) )
 			
-		self.rlk = rlk.copy()
+		#self.rlk = rlk.copy()
 		return
+	
 	
 	def encrypt(self,pt=0):
 		# encode plaintext into a plaintext polynomial
@@ -195,57 +218,64 @@ class LPR():
 		# still work in progress, not working yet
 
 		# calculate c0 
-		c0 = []
-		mult0 = self.polymult( x[0], y[0] )
-		for ind, i in enumerate(mult0):
-			c0.append( round(i * self.t / self.q ) % self.q )
-		c0 = Poly(c0)
+		c0 = self.polymult( x[0], y[0] )
+		for ind, i in enumerate(c0):
+			c0[ind] = round(i * self.t / self.q) #% self.q
+		
+		c0 = self.mod(c0)
 
 		# calculate c1
-		c1 = []
-		mult1 = self.polyadd( self.polymult(x[0],y[1]), self.polymult(x[1],y[0]))
-		for ind, i in enumerate(mult1):
-			c1.append( round(i * self.t / self.q ) % self.q )
-		c1 = Poly(c1)
+		t0 = self.polymult(x[1],y[0])
+		t1 = self.polymult(x[0],y[1])
+		c1 = self.polyadd( t0, t1)
+		for ind, i in enumerate(c1):
+			c1[ind] = round(i * self.t / self.q) #% self.q
 		
-		# calculate c2
-		c2 = []
-		mult2 = self.polymult( x[1], y[1] )
-		for ind, i in enumerate(mult2):
-			c2.append( round(i * self.t / self.q ) % self.q )
-		c2 = Poly(c2)
+		c1 = self.mod(c1)
 
-		return self.relin1(c0,c1,c2)
+		# calculate c2
+		c2 = self.polymult( x[1], y[1] )
+		for ind, i in enumerate(c2):
+			c2[ind] = round(i * self.t / self.q) #% self.q
+
+		c2 = self.mod(c2)
+
+		ret = self.relin1(c0,c1,c2)
+
+		return ret
+		# relinearization without new base T
+
+		a = self.gen_normal_poly()
+		e = self.gen_binary_poly()
+
+		ask = self.polymult( a, self.sk )
+		b = self.polyadd( ask, e )
+		for ind, i in enumerate(b):
+			b[ind] = -1 * i
+		
+		ss = self.polymult(self.sk, self.sk)
+		ek = ( self.polyadd(b,ss), a )
+
+		r0 = self.polyadd( c0, self.polymult(ek[0],c2 ) )
+		r1 = self.polyadd( c1, self.polymult(ek[1],c2 ) )
+	
+		#ret = (r0, r1)
+		return ret
 
 	def relin1(self,c0,c1,c2):
 		# still work in progress, not completed
 		# calculate c2T, which would be c2 in base T
-		'''
-		c2T = []
-		c2cpy = c2.copy()
-		for i in range(self.l+1):
-			mask = []
-			for jnd, j in enumerate(c2cpy):
-				_Tpow = self.T ** (i+1)
-				_T = self.T ** i
-				num = j % _Tpow
-				mask.append( int( num / _T ) )
-				c2cpy[jnd] = c2cpy[jnd] - num
 
-			c2T.append( Poly(mask) )
-		'''
 		c2T = self.poly_base_change(c2,self.q,self.T)
 
 		summ0 = Poly()
+		summ1 = Poly()
+
 		for i in range(self.l+1):
 			summ0 = self.polyadd( summ0, self.polymult(self.rlk[i][0], c2T[i] ) )
-		
-		_c0 = self.polyadd( c0, summ0 )
-
-		summ1 = Poly()
-		for i in range(self.l+1):
 			summ1 = self.polyadd( summ1, self.polymult(self.rlk[i][1], c2T[i] ) )
 		
+		_c0 = self.polyadd( c0, summ0 )
 		_c1 = self.polyadd( c1, summ1 )
 
 		return (_c0, _c1)
@@ -270,7 +300,7 @@ class LPR():
 		for ind, i in enumerate(z):
 			z[ind] = round(i)
 		z = z % self.q
-		#z = self.mod(z)
+		z = self.mod(z)
 		return z
 
 	def polymult(self, x, y):
@@ -282,7 +312,7 @@ class LPR():
 		for ind, i in enumerate(z):
 			z[ind] = round(i)
 		z = z % self.q
-		#z = self.mod(z)
+		z = self.mod(z)
 		return z
 
 	def gen_normal_poly(self,c=0,std=2):
@@ -324,6 +354,11 @@ class LPR():
 		l = int(np.floor(np.log2(q)/np.log2(T)))
 		cpy = poly.copy()
 		base_poly = []
+
+		for ind, i in enumerate(cpy):
+			if i < 0:
+				cpy[ind] = i + self.q
+
 		for i in range(l+1):
 			mask = []
 			for jnd, j in enumerate(cpy):
@@ -465,13 +500,13 @@ def mod(x,q=2):
 def test_addition():
 	# this function will act as the test of adding two cipher texts
 
-	lpr = LPR()
+	lpr = LPR(t=2 ** 5)
 
 	# generate the two random numbers
 	#x = 1
 	#y = 2
-	x = np.random.randint(0,50)
-	y = np.random.randint(0,50)
+	x = np.random.randint(0,10)
+	y = np.random.randint(0,10)
 	print(f'{x} and {y} are randomly generated')
 
 	ctx = lpr.encrypt(x)
@@ -484,18 +519,24 @@ def test_addition():
 	print(f'cipher text addition')
 	print(f'{x} + {y} = {answer}')
 	print(f'Addition test: { answer == (x+y) }')
+	if (answer == (x+y) ):
+		return 1
+	else:
+		return 0
 	return
 
 def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
+	#lpr = LPR(q=2**14,t=2**5,T=5)
+	#lpr = LPR(n=2**7,t=2**4,q=2**20)
 	lpr = LPR()
 
 	# generate the two random numbers
 	x = 0
-	#x = np.random.randint(0,50)
 	y = 0
-	#y = np.random.randint(0,50)
+	#x = np.random.randint(1,3)
+	#y = np.random.randint(1,3)
 	print(f'{x} and {y} are randomly generated')
 
 	ctx = lpr.encrypt(x)
@@ -508,6 +549,9 @@ def test_multiplication():
 	print(f'cipher text multiplication')
 	print(f'{x} * {y} = {answer}')
 	print(f'Multiplication test: { answer == (x*y) }')
+	print(f'x == dec(enc(x)): {x == lpr.decrypt(ctx)}')
+	print(f'y == dec(enc(y)): {y == lpr.decrypt(cty)}')
+	print(f'x+y == dec(enc(x+y)): {x+y == lpr.decrypt(lpr.ctadd(ctx,cty))}')
 	return
 
 def test_base_change():
@@ -515,9 +559,9 @@ def test_base_change():
 	# function in the lpr() class
 
 	# will first test this with the base as 10
-	lpr = LPR(T=10)
+	lpr = LPR(T=2)
 
-	print(f'Public Key[0]:',end=' ')
+	print(f'Public Key[0]:',end='\t')
 	lpr.pk[0].polyprint()
 
 	base = lpr.poly_base_change(lpr.pk[0],lpr.q,lpr.T)
@@ -526,9 +570,64 @@ def test_base_change():
 	for p in base:
 		p.polyprint()
 
+	# recreate the original polynomial using the 
+	# power of the different base change
+
+	new = Poly()
+
+	for ind,p in enumerate(base):
+		cpy = p.copy()
+		for jnd,c in enumerate(cpy):
+			cpy[jnd] = c * (lpr.T ** ind)
+
+		new = new + cpy
+
+	print(f'Recovered:', end='\t')
+	new = lpr.mod(new)
+	new.polyprint()
+
+	print(f'{new == lpr.pk[0]}')
+
+	print(f'q = {lpr.q}')
+
+	return
+
+def test_two_mult():
+
+	#lpr = LPR(t=2**10,q=2**19,T=2*2)
+	lpr = LPR()
+	print(' ')
+
+	for i in range(10):
+
+		print("testing low multiplication")
+		a = 0
+		b = 0
+		cta = lpr.encrypt(a)
+		ctb = lpr.encrypt(b)
+
+		ctc = lpr.ctmult(cta,ctb)
+
+		c = lpr.decrypt(ctc)
+		print(f'{a} * {b} = {c}')
+		print(f'{(a*b)==c}')
+
+		print('\ntesting high multiplication')
+		a = 8
+		b = 8
+		cta = lpr.encrypt(a)
+		ctb = lpr.encrypt(b)
+
+		ctc = lpr.ctmult(cta,ctb)
+
+		c = lpr.decrypt(ctc)
+		print(f'{a} * {b} = {c}')
+		print(f'{(a*b)==c}')
 	return
 
 if __name__ == '__main__':
 	#test_base_change()
-	main()
+	#main()
+	#test_multiplication()
+	test_two_mult()
 	pass
