@@ -210,6 +210,32 @@ class LPR():
 		# multiply cipher texts X and Y and return ciphertext X*Y
 		# still work in progress, not working yet
 
+		z = []
+		z.append(x[0].copy())
+		z.append(x[1].copy())
+
+		# scale both polynomials in z by (t/q)
+		for ind, num in enumerate(z[0]):
+			z[0][ind] = round(num * self.t / self.q)
+
+		for ind, num in enumerate(z[1]):
+			z[1][ind] = round(num * self.t / self.q)
+
+
+		# c0 = ct0[0]*ct1[0]
+		c0 = self.polymult( z[0], y[0] )
+		# c1 = ct0[0]*ct1[1] + ct0[1]*ct1[0]
+		c1 = self.polyadd( self.polymult(z[0],y[1]), self.polymult(z[1],y[0]) )
+		# c2 = ct0[1]*ct1[1]
+		c2 = self.polymult( z[1], y[1] )
+
+		ret = self.relin1(c0,c1,c2)
+
+		return ret
+		'''
+		failed code, did not produce correct multiplication
+		keeping commented out for later study with why it failed
+
 		# calculate c0 
 		c0 = self.polymult( x[0], y[0] )
 		for ind, i in enumerate(c0):
@@ -232,9 +258,9 @@ class LPR():
 			c2[ind] = round(i * self.t / self.q) #% self.q
 
 		#c2 = self.mod(c2)
-
+		'''
 		ret = self.relin1(c0,c1,c2)
-
+		return ret
 		return (ret,(c0,c1,c2))
 
 	def relin1(self,c0,c1,c2):
