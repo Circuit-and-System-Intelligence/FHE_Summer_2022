@@ -4,20 +4,19 @@ import numpy as np
 import sys
 
 def main():
-  #main_test()
-  #test_base_change()
-  #test_multiplication()
-  test_two_mult()
-  return
+	#main_test()
+	#test_addition()
+	test_two_mult()
+	return
 
 def main_test():
 	# this main function is using the lpr() class
 	# encryption scheme
 
-	test_addition()
-	print('\n')
-	test_multiplication()
-	print('\n')
+	#test_addition()
+	#print('\n')
+	#test_multiplication()
+	#print('\n')
 	#lpr_test()
 	#ring_test()
 	
@@ -148,31 +147,39 @@ def test_two_mult():
 	lpr = LPR()
 	print(' ')
 
-	for i in range(10):
+	print("testing low multiplication")
+	a = 0
+	b = 0
+	cta = lpr.encrypt(a)
+	ctb = lpr.encrypt(b)
 
-		print("testing low multiplication")
-		a = 0
-		b = 0
-		cta = lpr.encrypt(a)
-		ctb = lpr.encrypt(b)
+	ctc,ctc3 = lpr.ctmult(cta,ctb)
+	ctd = lpr.ctadd(cta,ctb)
 
-		ctc = lpr.ctmult(cta,ctb)
+	#lpr.decrypt3(ctc3)
+	c = lpr.decrypt(ctc)
+	d = lpr.decrypt(ctd)
+	print(f'{a} * {b} = {c}')
+	print(f'{(a*b)==c}')
+	print(f'{a} + {b} = {d}')
+	print(f'{(a*b)==d}')
 
-		c = lpr.decrypt(ctc)
-		print(f'{a} * {b} = {c}')
-		print(f'{(a*b)==c}')
+	print('\ntesting high multiplication')
+	a = 2
+	b = 2
+	cta = lpr.encrypt(a)
+	ctb = lpr.encrypt(b)
 
-		print('\ntesting high multiplication')
-		a = 8
-		b = 8
-		cta = lpr.encrypt(a)
-		ctb = lpr.encrypt(b)
+	ctc,ctc3 = lpr.ctmult(cta,ctb)
+	ctd = lpr.ctadd(cta,ctb)
 
-		ctc = lpr.ctmult(cta,ctb)
-
-		c = lpr.decrypt(ctc)
-		print(f'{a} * {b} = {c}')
-		print(f'{(a*b)==c}')
+	#lpr.decrypt3(ctc3)
+	c = lpr.decrypt(ctc)
+	d = lpr.decrypt(ctd)
+	print(f'{a} * {b} = {c}')
+	print(f'{(a*b)==c}')
+	print(f'{a} + {b} = {d}')
+	print(f'{(a*b)==d}')
 	return
 
 
