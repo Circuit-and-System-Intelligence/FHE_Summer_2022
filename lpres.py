@@ -171,8 +171,30 @@ class LPR():
 		# create a polynomial from the list
 		decrypted_pt = Poly(decrypted_pt)
 
+		#decrypted_pt.polyprint()
+
 		# return the first term of the polynomial, which is the plaintext
 		return int(decrypted_pt[0])
+
+	def decrypt3(self,ct):
+		#print('here')
+		t0 = ct[0]
+		t1 = self.polymult( self.sk, ct[1] )
+		t2 = self.polymult( self.polymult( self.sk, self.sk ), ct[2] )
+		#scaled_pt = self.polyadd( self.polymult( self.polymult( self.sk, self.sk ), ct[2] ), self.polyadd( self.polymult( ct[1], self.sk ), ct[0] ) )
+		scaled_pt = self.polyadd( self.polyadd( t2, t1), t0 )
+		decrypted_pt = []
+		# scale each coefficient by t/q % t
+		for ind, i in enumerate( scaled_pt ):
+			scaled_pt[ind] = (  round(i * self.t / self.q ) % self.t )
+		
+		# create a polynomial from the list
+		decrypted_pt = Poly(decrypted_pt)
+
+		#scaled_pt.polyprint()
+
+		return int(scaled_pt[0])
+
 
 	def ctadd(self, x, y):
 		# X and Y are two cipher texts generated
@@ -193,7 +215,7 @@ class LPR():
 		for ind, i in enumerate(c0):
 			c0[ind] = round(i * self.t / self.q) #% self.q
 		
-		c0 = self.mod(c0)
+		#c0 = self.mod(c0)
 
 		# calculate c1
 		t0 = self.polymult(x[1],y[0])
@@ -202,18 +224,18 @@ class LPR():
 		for ind, i in enumerate(c1):
 			c1[ind] = round(i * self.t / self.q) #% self.q
 		
-		c1 = self.mod(c1)
+		#c1 = self.mod(c1)
 
 		# calculate c2
 		c2 = self.polymult( x[1], y[1] )
 		for ind, i in enumerate(c2):
 			c2[ind] = round(i * self.t / self.q) #% self.q
 
-		c2 = self.mod(c2)
+		#c2 = self.mod(c2)
 
 		ret = self.relin1(c0,c1,c2)
 
-		return ret
+		return (ret,(c0,c1,c2))
 
 	def relin1(self,c0,c1,c2):
 		# still work in progress, not completed
@@ -253,7 +275,7 @@ class LPR():
 		for ind, i in enumerate(z):
 			z[ind] = round(i)
 		z = z % self.q
-		z = self.mod(z)
+		#z = self.mod(z)
 		return z
 
 	def polymult(self, x, y):
@@ -265,7 +287,7 @@ class LPR():
 		for ind, i in enumerate(z):
 			z[ind] = round(i)
 		z = z % self.q
-		z = self.mod(z)
+		#z = self.mod(z)
 		return z
 
 	def gen_normal_poly(self,c=0,std=2):
