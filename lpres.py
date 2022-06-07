@@ -8,9 +8,12 @@
 # this will also have some testing code for me to test
 # polynomial ring operations
 
+from matplotlib.pyplot import sca
 import numpy as np
 from numpy.polynomial import polynomial as p
 import sys
+
+from sklearn.preprocessing import scale
 from poly import Poly
 
 def main():
@@ -75,25 +78,36 @@ class LPR():
 		#self.sk = self.gen_normal_poly()
 		return
 
-	def genpk(self):
+	def genpk(self,test=None):
 		if (self.sk == None):
 			return
 		# generate a uniformly distributed polynomial with coefs
 		# from [0,q)
 		a = self.gen_uniform_poly()
 
+		# generate a normally distributed polynomial with integers
+		# generated from a center of 0 and std of 2
+		e = self.gen_normal_poly()
+
+		if (test == 1):
+			a = Poly([71,239,2,243,73,213,85,184])
+			e = Poly([0,-1,1,-1,2,-2,-3,-1])
+
 		# create a new polynomial _a which is -a
+		'''
 		_a = []
 		for i in a:
 			_a.append(-1*i)
 		_a = Poly(_a)
+		'''
+		_a = a * -1
 
-		# generate a normally distributed polynomial with integers
-		# generated from a center of 0 and std of 2
-		e = self.gen_normal_poly()
 		# then set e = -e
+		'''
 		for ind, i in enumerate(e):
 			e[ind] = -1 * i
+		'''
+		e = e * -1
 
 		# create b from (-a * sk) - e
 		b = self.polyadd( self.polymult(_a, self.sk),e)
@@ -103,31 +117,53 @@ class LPR():
 		self.pk = (b,a)
 		return
 	
-	def genrlk1(self):
+	def genrlk1(self,test=None):
 		# use change of base rule for logs to calculate logT(q)
 		# using log2 because most likely self.q and self.T are in base 2
 		self.l = int(np.floor(np.log2(self.q)/np.log2(self.T)))
 
 		# create the different masks for the rlk key
 		self.rlk = []
+		'''
 		ss = self.polymult(self.sk,self.sk)
+		'''
+
+		if (test == 1):
+			pregen = []
+			pregen.append( ( Poly([182,174,245,89,3,176,60,162]) , Poly([0,3,0,-4,-2,1,2,-3]) ) )
+			pregen.append( ( Poly([60,186,134,177,240,28,50,218]) , Poly([-2,1,3,-3,-4,1,-3,1]) ) )
+			pregen.append( ( Poly([122,144,143,158,23,81,240,137]) , Poly([2,1,-2,-3,1,1,-1,-1]) ) )
+			pregen.append( ( Poly([212,77,255,165,216,115,221,239]) , Poly([-1,-2,-1,0,-4,-3,1,1]) ) )
+			pregen.append( ( Poly([191,190,56,62,149,118,52,95]) , Poly([1,-1,1,3,-1,-4,0,1]) ) )
+
 		#a = self.gen_uniform_poly()
 		#e = self.gen_normal_poly()
 		for i in range(self.l+1):
 			# generate the different random polynomials needed
 			a = self.gen_uniform_poly()
 			e = self.gen_normal_poly()
+			if (test == 1):
+				a = pregen[i][0]
+				e = pregen[i][1]
+			'''
 			_a = a.copy()
 			for jnd, j in enumerate(_a):
 				_a[jnd] = -1 * j
 			for jnd, j in enumerate(e):
 				e[jnd] = -1 * j
+			'''
+			_a = a * -1
+			e = e * -1
 
 			b = self.polyadd( self.polymult(_a, self.sk), e)
 			T = self.T ** i
+			ss = self.sk * T
+			'''
 			s2 = ss.copy()
 			for jnd, j in enumerate(s2):
 				s2[jnd] = j * T 
+			'''
+			s2 = self.polymult( ss, self.sk )
 			b = self.polyadd( b, s2 )
 			self.rlk.append( (b,a) )
 			
@@ -135,7 +171,7 @@ class LPR():
 		return
 	
 	
-	def encrypt(self,pt=0):
+	def encrypt(self,pt=0,test=None):
 		# encode plaintext into a plaintext polynomial
 		# create polynomial m, which is pt%q
 		m = [pt]
@@ -150,6 +186,16 @@ class LPR():
 		e1 = self.gen_normal_poly()
 		e2 = self.gen_normal_poly()
 		u = self.gen_binary_poly()
+		if (test == 0):
+			u = Poly([1,1,1,1,1,1,0,1])
+			e1 = Poly([-2,-2,0,4,-3,-1,0,-4])
+			e2 = Poly([1,-1,1,3,-1,-4,0,1])
+
+		if (test == 1):
+			u = Poly([0,0,0,1,0,1,1,1])
+			e1 = Poly([6,0,1,1,-2,-2,-2,-2])
+			e2 = Poly([0,-1,3,-2,2,1,-1,1])
+
 		# create c0 = pk[0]*u + e1 + scaled_m
 		ct0 = self.polyadd( self.polyadd( self.polymult( self.pk[0], u), e1), scaled_m)
 
@@ -162,7 +208,9 @@ class LPR():
 		# decrypt the cipher text to get the plaintext equivalent
 
 		# scaled_pt = ct[1]*sk + ct[0]
-		scaled_pt = self.polyadd( self.polymult( ct[1], self.sk ), ct[0] )
+		#scaled_pt = self.polyadd( self.polymult( ct[1], self.sk ), ct[0] )
+		scaled_pt = self.polyadd( ( ct[1] * self.sk ), ct[0] )
+		'''
 		decrypted_pt = []
 		# scale each coefficient by t/q % t
 		for ind, i in enumerate( scaled_pt ):
@@ -170,8 +218,14 @@ class LPR():
 		
 		# create a polynomial from the list
 		decrypted_pt = Poly(decrypted_pt)
+		'''
 
-		#decrypted_pt.polyprint()
+		scaled_pt = scaled_pt * ( self.T / self.q)
+		scaled_pt.round()
+		scaled_pt = scaled_pt % self.t
+		decrypted_pt = scaled_pt
+
+		decrypted_pt.polyprint()
 
 		# return the first term of the polynomial, which is the plaintext
 		return int(decrypted_pt[0])
@@ -191,7 +245,7 @@ class LPR():
 		# create a polynomial from the list
 		decrypted_pt = Poly(decrypted_pt)
 
-		#scaled_pt.polyprint()
+		scaled_pt.polyprint()
 
 		return int(scaled_pt[0])
 
@@ -206,7 +260,7 @@ class LPR():
 
 		return ct
 
-	def ctmult(self, x, y, type=1):
+	def ctmult(self, x, y, test=None):
 		# multiply cipher texts X and Y and return ciphertext X*Y
 		# still work in progress, not working yet
 
@@ -229,39 +283,57 @@ class LPR():
 		# c2 = ct0[1]*ct1[1]
 		c2 = self.polymult( z[1], y[1] )
 
-		ret = self.relin1(c0,c1,c2)
+		c0 = x[0] * y[0]
+		quo,c0 = c0 / self.fn
+		c0 = c0 * ( self.t / self.q )
+		c0.round()
+		c0 = c0 % self.q
 
+		c1 = (x[0]*y[1]) + (x[1]*y[0])
+		quo,c1 = c1 / self.fn
+		c1 = c1 * ( self.t / self.q )
+		c1.round()
+		c1 = c1 % self.q
+
+		c2 = x[1] * y[1]
+		quo,c2 = c2 / self.fn
+		c2 = c2 * ( self.t / self.q )
+		c2.round()
+		c2 = c2 % self.q
+
+		if (test == 1):
+			assert c0 == Poly([142,144,235,21,224,118,152,123])
+			assert c1 == Poly([40,189,27,73,242,152,98,40])
+			assert c2 == Poly([22,86,133,29,199,110,199,50])
+
+		ret = self.relin1(c0,c1,c2)
 		return ret
+
 		'''
 		failed code, did not produce correct multiplication
 		keeping commented out for later study with why it failed
 
-		# calculate c0 
-		c0 = self.polymult( x[0], y[0] )
-		for ind, i in enumerate(c0):
-			c0[ind] = round(i * self.t / self.q) #% self.q
-		
-		#c0 = self.mod(c0)
+		# calculate fc0 
+		fc0 = self.polymult( x[0], y[0] )
+		for ind, i in enumerate(fc0):
+			fc0[ind] = round(i * self.t / self.q) #% self.q
 
-		# calculate c1
+		# calculate fc1
 		t0 = self.polymult(x[1],y[0])
 		t1 = self.polymult(x[0],y[1])
-		c1 = self.polyadd( t0, t1)
-		for ind, i in enumerate(c1):
-			c1[ind] = round(i * self.t / self.q) #% self.q
-		
-		#c1 = self.mod(c1)
+		fc1 = self.polyadd( t0, t1)
+		for ind, i in enumerate(fc1):
+			fc1[ind] = round(i * self.t / self.q) #% self.q
 
-		# calculate c2
-		c2 = self.polymult( x[1], y[1] )
-		for ind, i in enumerate(c2):
-			c2[ind] = round(i * self.t / self.q) #% self.q
+		# calculate fc2
+		fc2 = self.polymult( x[1], y[1] )
+		for ind, i in enumerate(fc2):
+			fc2[ind] = round(i * self.t / self.q) #% self.q
 
-		#c2 = self.mod(c2)
-		'''
-		ret = self.relin1(c0,c1,c2)
+		ret = self.relin1(fc0,fc1,fc2)
 		return ret
 		return (ret,(c0,c1,c2))
+		'''
 
 	def relin1(self,c0,c1,c2):
 		# still work in progress, not completed
@@ -273,11 +345,22 @@ class LPR():
 		summ1 = Poly()
 
 		for i in range(self.l+1):
-			summ0 = self.polyadd( summ0, self.polymult(self.rlk[i][0], c2T[i] ) )
-			summ1 = self.polyadd( summ1, self.polymult(self.rlk[i][1], c2T[i] ) )
+			#summ0 = self.polyadd( summ0, self.polymult(self.rlk[i][0], c2T[i] ) )
+			#summ1 = self.polyadd( summ1, self.polymult(self.rlk[i][1], c2T[i] ) )
+			summ0 = summ0 + ( self.rlk[i][0] * c2T[i] )
+			summ1 = summ1 + ( self.rlk[i][1] * c2T[i] )
 		
-		_c0 = self.polyadd( c0, summ0 )
-		_c1 = self.polyadd( c1, summ1 )
+		q,summ0 = summ0 / self.fn
+		q,summ1 = summ1 / self.fn
+
+		_c0 = c0 + summ0
+		_c1 = c1 + summ1
+
+		_c0 = _c0 % self.q
+		_c1 = _c1 % self.q
+		
+		#_c0 = self.polyadd( c0, summ0 )
+		#_c1 = self.polyadd( c1, summ1 )
 
 		return (_c0, _c1)
 
@@ -298,8 +381,8 @@ class LPR():
 		z = x + y
 		quo,rem = (z / self.fn)
 		z = rem
-		for ind, i in enumerate(z):
-			z[ind] = round(i)
+		#for ind, i in enumerate(z):
+		#	z[ind] = round(i)
 		z = z % self.q
 		#z = self.mod(z)
 		return z
@@ -310,8 +393,8 @@ class LPR():
 		z = x * y
 		quo, rem = (z / self.fn)
 		z = rem
-		for ind, i in enumerate(z):
-			z[ind] = round(i)
+		#for ind, i in enumerate(z):
+		#	z[ind] = round(i)
 		z = z % self.q
 		#z = self.mod(z)
 		return z

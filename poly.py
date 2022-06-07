@@ -84,6 +84,16 @@ class Poly():
 	def __add__(self,other):
 		# add two polynomials together, new deg would 
 		# be max(deg1,deg2)
+
+		if (type(other) == int or type(other) == float):
+			copy = self.copy()
+			for ind,i in enumerate(copy):
+				copy[ind] = i + other
+			return copy
+
+		if (type(other) != type(self)):
+			raise TypeError
+
 		sz = max(self.size(),other.size())
 		res = [0] * sz
 		for ind,i in enumerate(self.poly):
@@ -96,6 +106,16 @@ class Poly():
 	def __sub__(self,other):
 		# sub two polynomials together, new deg would 
 		# be max(deg1,deg2)
+
+		if (type(other) == int or type(other) == float):
+			copy = self.copy()
+			for ind,i in enumerate(copy):
+				copy[ind] = i - other
+			return copy
+
+		if (type(other) != type(self)):
+			raise TypeError
+
 		sz = max(self.size(),other.size())
 		res = [0] * sz
 		for ind,i in enumerate(self.poly):
@@ -107,6 +127,16 @@ class Poly():
 
 	def __mul__(self,other):
 		# multiply two polynomials together
+
+		if (type(other) == int or type(other) == float):
+			copy = self.copy()
+			for ind,i in enumerate(copy):
+				copy[ind] = i * other
+			return copy
+
+		if (type(other) != type(self)):
+			raise TypeError
+
 		sz = self.deg() + other.deg() + 1
 		res = [0] * sz
 
@@ -127,6 +157,16 @@ class Poly():
 		# return quotient and remainder
 		# copy the polynomials so that the arguments
 		# are not affected by this computation
+
+		if (type(other) == int or type(other) == float):
+			copy = self.copy()
+			for ind,i in enumerate(copy):
+				copy[ind] = i / other
+			return copy
+
+		if (type(other) != type(self)):
+			raise TypeError
+
 		se = self.copy()
 		ot = other.copy()
 		se.zero_deg()
@@ -206,6 +246,13 @@ class Poly():
 		for ind,i in enumerate(self.poly):
 			self.poly[ind] = int(i)
 
+		return self
+
+	def round(self):
+		# this function will round each coefficient
+		for ind,i in enumerate(self.poly):
+			self.poly[ind] = round(i)
+		
 		return self
 
 def main():
@@ -290,8 +337,20 @@ def test_equal():
 	print(f'Z:',end=' ')
 	z.polyprint()
 
+def testing_add_int():
+
+	x = Poly([0,1,2,3,4])
+
+	y = x * 5.5
+
+	x.polyprint()
+	y.polyprint()
+
+	return
+
 if __name__ == '__main__':
-	main()
+	#main()
 	#testing_copy()
 	#test_equal()
+	testing_add_int()
 	pass
