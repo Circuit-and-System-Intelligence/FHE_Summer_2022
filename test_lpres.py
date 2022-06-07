@@ -6,16 +6,7 @@ import pickle
 
 def main():
 	func = test_multiplication
-	#main_test()
-	#test_addition()
-	#print('\n')
-	#test_multiplication()
-	#test_two_mult()
-	#testing_many_addition()
-	#demo()
-	#test_func(n=1000,func=func)
-	#test_manual_decrypt()
-	test_lpr_calc()
+	test_multiplication()
 	return
 
 def demo():
@@ -94,10 +85,7 @@ def test_addition():
 def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
-	#lpr = LPR(q=2**14,t=2**5,T=5)
-	#lpr = LPR(n=2**7,t=2**4,q=2**20)
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(t=2**1,n=2**1,T=2**1,q=2**15)
 	lpr = LPR()
 
 	# generate the two random numbers
@@ -117,9 +105,6 @@ def test_multiplication():
 	print(f'cipher text multiplication',end=': ')
 	print(f'{x} * {y} = {answer}')
 	print(f'Multiplication test: { answer == (x*y) }')
-	#print(f'x == dec(enc(x)): {x == lpr.decrypt(ctx)}')
-	#print(f'y == dec(enc(y)): {y == lpr.decrypt(cty)}')
-	#print(f'x+y == dec(enc(x+y)): {x+y == lpr.decrypt(lpr.ctadd(ctx,cty))}')
 	return 1 if (answer == (x*y)) else 0
 
 def test_base_change():
@@ -159,48 +144,6 @@ def test_base_change():
 	#print(f'q = {lpr.q}')
 	return
 
-def test_two_mult():
-
-	#lpr = LPR(t=2**10,q=2**19,T=2*2)
-	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(t=2**5,n=2**0)
-	print(' ')
-
-	print("testing low multiplication")
-	a = 0
-	b = 0
-	cta = lpr.encrypt(a)
-	ctb = lpr.encrypt(b)
-
-	ctc = lpr.ctmult(cta,ctb)
-	ctd = lpr.ctadd(cta,ctb)
-
-	#lpr.decrypt3(ctc3)
-	c = lpr.decrypt(ctc)
-	d = lpr.decrypt(ctd)
-	print(f'{a} * {b} = {c}')
-	print(f'{(a*b)==c}')
-	print(f'{a} + {b} = {d}')
-	print(f'{(a+b)==d}')
-
-	print('\ntesting high multiplication')
-	a = 5
-	b = 5
-	cta = lpr.encrypt(a)
-	ctb = lpr.encrypt(b)
-
-	ctc = lpr.ctmult(cta,ctb)
-	ctd = lpr.ctadd(cta,ctb)
-
-	#lpr.decrypt3(ctc3)
-	c = lpr.decrypt(ctc)
-	d = lpr.decrypt(ctd)
-	print(f'{a} * {b} = {c}')
-	print(f'{(a*b)==c}')
-	print(f'{a} + {b} = {d}')
-	print(f'{(a+b)==d}')
-	return
-
 def testing_many_addition():
 
 	# q= 2**15, t= 2**8, n=2**4
@@ -224,7 +167,6 @@ def test_func(n=1000,func=None):
 	if (func == None):
 		return
 	
-	
 	count = 0
 	for i in range(n):
 		count += func()
@@ -237,46 +179,45 @@ def test_func(n=1000,func=None):
 
 def test_lpr_calc():
 
-	lpr = LPR(q=2**8+1, n = 2 ** 3, t = 2, T = 4)
-#
+	lpr = LPR(q=2**8, n = 2 ** 3, t = 2, T = 4)
+
 	# set the keys to presets already
 	lpr.sk = Poly([1,0,1,1,0,0,0,1])
 
 	# testing if pk is generated correctly
 	lpr.genpk(test=1)
 
-	#assert (lpr.pk[0] == Poly([210,33,97,33,153,141,42,228]))
-	#assert (lpr.pk[1] == Poly([71,239,2,243,73,213,85,184]))
+	assert (lpr.pk[0] == Poly([210,33,97,33,153,141,42,228]))
+	assert (lpr.pk[1] == Poly([71,239,2,243,73,213,85,184]))
 
 	# testing if rlk is generated correctly
 	lpr.genrlk1(test=1)
 
-	#assert (lpr.rlk[0][0] == Poly([229,32,80,76,13,63,8,250]))
-	#assert (lpr.rlk[1][0] == Poly([210,207,198,84,244,230,10,229]))
-	#assert (lpr.rlk[2][0] == Poly([101,87,32,146,42,145,229,182]))
-	#assert (lpr.rlk[3][0] == Poly([10,0,194,146,147,73,148,113]))
-	#assert (lpr.rlk[3][1] == Poly([212,77,255,165,216,115,221,239]))
-	#assert (lpr.rlk[4][0] == Poly([168,14,165,215,236,76,88,214]))
+	assert (lpr.rlk[0][0] == Poly([229,32,80,76,13,63,8,250]))
+	assert (lpr.rlk[1][0] == Poly([210,207,198,84,244,230,10,229]))
+	assert (lpr.rlk[2][0] == Poly([101,87,32,146,42,145,229,182]))
+	assert (lpr.rlk[3][0] == Poly([10,0,194,146,147,73,148,113]))
+	assert (lpr.rlk[3][1] == Poly([212,77,255,165,216,115,221,239]))
+	assert (lpr.rlk[4][0] == Poly([168,14,165,215,236,76,88,214]))
 
 	# testing encryption
 	m0 = 1
 	ct0 = lpr.encrypt(pt=m0,test=0)
 
-	#assert (ct0[0] == Poly([218,92,152,210,154,112,15,132]) )
-	#assert (ct0[1] == Poly([59,8,100,216,230,240,159,104]) )
+	assert (ct0[0] == Poly([218,92,152,210,154,112,15,132]) )
+	assert (ct0[1] == Poly([59,8,100,216,230,240,159,104]) )
 
 	m1 = 1
 	ct1 = lpr.encrypt(pt=m1,test=1)
 
-	#assert (ct1[0] == Poly([86,187,214,131,132,35,46,235]) )
-	#assert (ct1[1] == Poly([71,108,58,210,15,61,112,130]) )
-
+	assert (ct1[0] == Poly([86,187,214,131,132,35,46,235]) )
+	assert (ct1[1] == Poly([71,108,58,210,15,61,112,130]) )
 
 	# test addition
 
 	ct2 = lpr.ctadd(ct0,ct1)
-	#assert (ct2[0] == Poly([48,23,110,85,30,147,61,111]) )
-	#assert (ct2[1] == Poly([130,116,158,170,245,45,15,234]) )
+	assert (ct2[0] == Poly([48,23,110,85,30,147,61,111]) )
+	assert (ct2[1] == Poly([130,116,158,170,245,45,15,234]) )
 	#madd = lpr.decrypt(ct2)
 	#print(madd)
 
@@ -284,8 +225,8 @@ def test_lpr_calc():
 
 	ct3 = lpr.ctmult(ct0,ct1,test=1)
 	#assert (ct3[0] == Poly([126,232,169,195,171,35,195,110]) )
-	#assert (ct3[0] == Poly([116,236,168,194,182,26,182,113]) )
-	#assert (ct3[1] == Poly([162,154,155,6,193,114,61,171]) )
+	assert (ct3[0] == Poly([116,236,168,194,182,26,182,113]) )
+	assert (ct3[1] == Poly([162,154,155,6,193,114,61,171]) )
 	mmult = lpr.decrypt(ct3)
 	print(mmult)
 
@@ -327,11 +268,9 @@ def test_manual_decrypt():
 
 
 	dec = (c0) + (c1 * sk) + (c2 * sk * sk)
-	dec = dec % 256
 	dec.polyprint()
 	print(' ')
 	quo,dec = dec / fn
-	dec = dec % 256
 	dec.polyprint()
 	print(' ')
 	dec = dec % 256
