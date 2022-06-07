@@ -8,13 +8,10 @@
 # this will also have some testing code for me to test
 # polynomial ring operations
 
-from re import A
-from matplotlib.pyplot import sca
 import numpy as np
 from numpy.polynomial import polynomial as p
 import sys
 
-from sklearn.preprocessing import scale
 from poly import Poly
 
 def main():
