@@ -8,6 +8,7 @@
 # this will also have some testing code for me to test
 # polynomial ring operations
 
+from re import A
 from matplotlib.pyplot import sca
 import numpy as np
 from numpy.polynomial import polynomial as p
@@ -50,7 +51,7 @@ class LPR():
 		# the polynomial 1 + x^n
 		self.fn = fn
 		if (self.fn == None):
-			self.fn = [1] + [0]*(n-1) + [1]
+			self.fn = [1] + [0]*((n//2)-1) + [1]
 		self.fn = Poly(self.fn)
 		# this will set the variable T, as needed for relinearization1 for BFV
 		self.T = T
@@ -70,6 +71,7 @@ class LPR():
 		self.gensk()
 		self.genpk()
 		self.genrlk1()
+		#self.genrlk2()
 		
 	def gensk(self):
 		# call the gen_binary_poly key to create a polynomial
@@ -170,6 +172,46 @@ class LPR():
 		#self.rlk = rlk.copy()
 		return
 	
+	def genrlk2(self):
+
+		# define p for relin2
+		# bigger p means less noise (I think)
+		self.p = (self.q) ** 2
+
+		# hardcode k for now
+		k = 3
+
+		sqrt_k = np.sqrt(k)
+
+		# hardcode B for now
+		B = 20
+
+		# ALPHA is a constant
+		ALPHA = 3.758
+
+		sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (B ** sqrt_k) / 10 
+
+		e = self.gen_normal_poly(std=sigma_prime)
+		a = self.gen_uniform_poly(q=self.q*self.p)
+
+		# p * (sk^2)
+		ss = self.sk * self.sk
+		quo,ss = ss / self.fn
+		ss = ss * self.p
+
+		# -(a*s + e)
+		b = a * self.sk
+		quo,b = b / self.fn
+		b = b + e
+		b = b * -1
+
+		# -(a*s + e) + p*sk^2
+		b = ss + b
+
+		b = b % (self.q * self.p)
+
+		self.rlk = (b, a)
+		return 
 	
 	def encrypt(self,pt=0,test=None):
 		# encode plaintext into a plaintext polynomial
@@ -220,7 +262,7 @@ class LPR():
 		decrypted_pt = Poly(decrypted_pt)
 		'''
 
-		scaled_pt = scaled_pt * ( self.T / self.q)
+		scaled_pt = scaled_pt * ( self.t / self.q)
 		scaled_pt.round()
 		scaled_pt = scaled_pt % self.t
 		decrypted_pt = scaled_pt
@@ -307,6 +349,24 @@ class LPR():
 			assert c2 == Poly([22,86,133,29,199,110,199,50])
 
 		ret = self.relin1(c0,c1,c2)
+
+		'''
+		check1 = (c0) + (c1 * self.sk) + (c2 * self.sk * self.sk)
+		quo, check1 = check1 / self.fn
+		check1 = check1 % 256
+		check1.polyprint()
+
+		check2  = (ret[0]) + (ret[1] * self.sk)
+		quo, check2 = check2 / self.fn
+		check2 = check2 % 256
+		check2.polyprint()
+
+		diff = check1 - check2
+		print("-----check here ------")
+		diff.polyprint()
+		print("----------------------")
+		'''
+
 		return ret
 
 		'''
@@ -361,6 +421,31 @@ class LPR():
 		
 		#_c0 = self.polyadd( c0, summ0 )
 		#_c1 = self.polyadd( c1, summ1 )
+
+		return (_c0, _c1)
+
+	def relin2(self,c0,c1,c2):
+		# c20 = (c2 * rlk[0]/p)
+		c20 = c2 * self.rlk[0]	
+		quo,c20 = c20 / self.fn
+		c20 = c20 / self.p
+		c20.round()
+		c20 = c20 % self.q
+
+		# c21 = (c2 * rlk[1]/p)
+		c21 = c2 * self.rlk[1]	
+		quo,c21 = c21 / self.fn
+		c21 = c21 / self.p
+		c21.round()
+		c21 = c21 % self.q
+
+		# c0' = c0 + c20
+		# c1' = c1 + c21
+		_c0 = c0 + c20
+		_c1 = c1 + c21
+
+		_c0 = _c0 % 256
+		_c1 = _c1 % 256
 
 		return (_c0, _c1)
 
@@ -424,6 +509,7 @@ class LPR():
 		# with coefficients ranging from [0,q)
 		if (q == None):
 			q = self.q
+		q = min(q, 2**31)
 		a = []
 		for i in range(self.n):
 			a.append( np.random.randint(0,q) )
