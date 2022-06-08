@@ -48,7 +48,7 @@ class LPR():
 		# the polynomial 1 + x^n
 		self.fn = fn
 		if (self.fn == None):
-			self.fn = [1] + [0]*((n//2)-1) + [1]
+			self.fn = [1] + [0]*((n)-1) + [1]
 		self.fn = Poly(self.fn)
 		# this will set the variable T, as needed for relinearization1 for BFV
 		self.T = T
@@ -65,19 +65,19 @@ class LPR():
 
 	def gen_keys(self):
 		# calls the different functions to generate the keys
-		self.gensk()
-		self.genpk()
-		self.genrlk1()
-		#self.genrlk2()
+		self.gen_sk()
+		self.gen_pk()
+		#self.gen_rlk1()
+		self.gen_rlk2()
 		
-	def gensk(self):
+	def gen_sk(self):
 		# call the gen_binary_poly key to create a polynomial
 		# of only 0's and 1's for the secret key
 		self.sk = self.gen_binary_poly()
 		#self.sk = self.gen_normal_poly()
 		return
 
-	def genpk(self,test=None):
+	def gen_pk(self,test=None):
 		if (self.sk == None):
 			return
 		# generate a uniformly distributed polynomial with coefs
@@ -116,7 +116,7 @@ class LPR():
 		self.pk = (b,a)
 		return
 	
-	def genrlk1(self,test=None):
+	def gen_rlk1(self,test=None):
 		# use change of base rule for logs to calculate logT(q)
 		# using log2 because most likely self.q and self.T are in base 2
 		self.l = int(np.floor(np.log2(self.q)/np.log2(self.T)))
@@ -169,11 +169,11 @@ class LPR():
 		#self.rlk = rlk.copy()
 		return
 	
-	def genrlk2(self):
+	def gen_rlk2(self):
 
 		# define p for relin2
 		# bigger p means less noise (I think)
-		self.p = (self.q) ** 2
+		self.p = (self.q) ** 4
 
 		# hardcode k for now
 		k = 3
@@ -345,24 +345,23 @@ class LPR():
 			assert c1 == Poly([40,189,27,73,242,152,98,40])
 			assert c2 == Poly([22,86,133,29,199,110,199,50])
 
-		ret = self.relin1(c0,c1,c2)
+		ret = self.relin2(c0,c1,c2)
 
-		'''
+		return ret
 		check1 = (c0) + (c1 * self.sk) + (c2 * self.sk * self.sk)
 		quo, check1 = check1 / self.fn
 		check1 = check1 % 256
-		check1.polyprint()
+		#check1.polyprint()
 
 		check2  = (ret[0]) + (ret[1] * self.sk)
 		quo, check2 = check2 / self.fn
 		check2 = check2 % 256
-		check2.polyprint()
+		#check2.polyprint()
 
 		diff = check1 - check2
 		print("-----check here ------")
 		diff.polyprint()
 		print("----------------------")
-		'''
 
 		return ret
 
@@ -441,8 +440,8 @@ class LPR():
 		_c0 = c0 + c20
 		_c1 = c1 + c21
 
-		_c0 = _c0 % 256
-		_c1 = _c1 % 256
+		_c0 = _c0 % self.q
+		_c1 = _c1 % self.q
 
 		return (_c0, _c1)
 
