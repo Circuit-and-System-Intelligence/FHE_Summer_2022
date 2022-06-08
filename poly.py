@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# Author: Jeremy Stevens
-# E-mail: jsteve22@nd.edu 
 # Date: 5/26/2022
 # Create class for polynomials and ring polynomials
 # 
