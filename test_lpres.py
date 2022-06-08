@@ -7,8 +7,8 @@ import pickle
 def main():
 	func = test_multiplication
 	#test_multiplication()
-	#test_func(n=10,func=func)
-	testing_many_multiplication()
+	test_func(n=10,func=func)
+	#testing_many_multiplication()
 	#test_lpr_calc()
 	return
 
@@ -89,7 +89,7 @@ def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(t=2,q=2**30,n=2**10)
+	lpr = LPR(t=2,q=2**30,n=2**5)
 
 	# generate the two random numbers
 	#x = 0
