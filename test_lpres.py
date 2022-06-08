@@ -7,7 +7,7 @@ import pickle
 def main():
 	func = test_multiplication
 	#test_multiplication()
-	test_func(n=10,func=func)
+	test_func(n=5,func=func)
 	#testing_many_multiplication()
 	#test_lpr_calc()
 	return
