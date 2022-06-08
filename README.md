@@ -2,5 +2,4 @@
 
 This repository will hold the code for writing a fully homomorphic encryption scheme. 
 
-Members:
-	-Jeremy Stevens
+Members: Jeremy Stevens
