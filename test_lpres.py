@@ -6,7 +6,9 @@ import pickle
 
 def main():
 	func = test_multiplication
-	test_multiplication()
+	#test_multiplication()
+	test_func(n=1000,func=func)
+	#test_lpr_calc()
 	return
 
 def demo():
@@ -86,13 +88,13 @@ def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR()
+	lpr = LPR(t=8,q=2**20)
 
 	# generate the two random numbers
 	#x = 0
 	#y = 0
-	x = np.random.randint(0,2)
-	y = np.random.randint(0,2)
+	x = np.random.randint(0,3)
+	y = np.random.randint(0,4)
 	print(f'{x} and {y} are randomly generated')
 
 	ctx = lpr.encrypt(x)
@@ -170,6 +172,7 @@ def test_func(n=1000,func=None):
 	count = 0
 	for i in range(n):
 		count += func()
+		print(' ')
 	
 	print(f'\n')
 	print(f'The function ran {n} times')
@@ -185,13 +188,14 @@ def test_lpr_calc():
 	lpr.sk = Poly([1,0,1,1,0,0,0,1])
 
 	# testing if pk is generated correctly
-	lpr.genpk(test=1)
+	lpr.gen_pk(test=1)
 
 	assert (lpr.pk[0] == Poly([210,33,97,33,153,141,42,228]))
 	assert (lpr.pk[1] == Poly([71,239,2,243,73,213,85,184]))
 
 	# testing if rlk is generated correctly
-	lpr.genrlk1(test=1)
+	#lpr.gen_rlk1(test=1)
+	lpr.gen_rlk2()
 
 	assert (lpr.rlk[0][0] == Poly([229,32,80,76,13,63,8,250]))
 	assert (lpr.rlk[1][0] == Poly([210,207,198,84,244,230,10,229]))
@@ -230,6 +234,21 @@ def test_lpr_calc():
 	mmult = lpr.decrypt(ct3)
 	print(mmult)
 
+	
+	c0 = Poly([142,144,235,21,224,118,152,123])
+	c1 = Poly([40,189,27,73,242,152,98,40])
+	c2 = Poly([22,86,133,29,199,110,199,50])
+
+	check1 = c0 + ( c1 * lpr.sk ) + ( c2 * lpr.sk * lpr.sk )
+	quo,check1 = check1 / lpr.fn
+	check1 = check1 % ( 2 ** 8 )
+
+	check2 = ct3[0] + ( ct3[1] * lpr.sk )
+	quo,check2 = check2 / lpr.fn
+	check2 = check2 % ( 2 ** 8 )
+
+	check1.polyprint()
+	check2.polyprint()
 
 	return
 
