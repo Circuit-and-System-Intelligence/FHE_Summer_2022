@@ -173,10 +173,10 @@ class LPR():
 
 		# define p for relin2
 		# bigger p means less noise (I think)
-		self.p = (self.q) ** 4
+		self.p = (self.q) ** 3
 
 		# hardcode k for now
-		k = 3
+		k = 4
 
 		sqrt_k = np.sqrt(k)
 
@@ -186,7 +186,7 @@ class LPR():
 		# ALPHA is a constant
 		ALPHA = 3.758
 
-		sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (B ** sqrt_k) / 10 
+		sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (B ** sqrt_k) / 5 
 
 		e = self.gen_normal_poly(std=sigma_prime)
 		a = self.gen_uniform_poly(q=self.q*self.p)
