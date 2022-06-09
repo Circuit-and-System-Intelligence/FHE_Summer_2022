@@ -5,14 +5,20 @@
 # This program will create a class for the ckks 
 # fully homomorphic encryption scheme
 
+from poly import Poly
+import numpy as np
+
 class ckks():
 
-  def __init__():
+  def __init__(self,M=8,delta=64):
+    self.M = M
+    self.delta = delta
     return
 
-  
 
 def main():
+
+  es = ckks()
 
   return
 
