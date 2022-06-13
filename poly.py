@@ -283,7 +283,6 @@ class Poly():
 		# this function will turn each of the coefficients into integers
 		for ind,i in enumerate(self.poly):
 			self.poly[ind] = int(i)
-
 		return self
 
 	def round(self):

@@ -505,7 +505,7 @@ class LPR():
 		# with coefficients ranging from [0,q)
 		if (q == None):
 			q = self.q
-		q = min(q, 2**31)
+		q = min(q, 2**63)
 		a = []
 		for i in range(self.n):
 			a.append( np.random.randint(0,q) )
