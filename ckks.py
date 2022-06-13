@@ -11,13 +11,214 @@ import numpy as np
 
 class CKKS():
 
-	def __init__(self,M=8,delta=64):
+	def __init__(self,M=8,delta=64,q=2**20):
 		self.M = M
+		self.N = M // 2
+		# encoding variables
 		self.xi = np.exp( 2 * np.pi * 1j / self.M )
 		self.delta = delta
-		self.check = 1
 		self.create_sigma_R_basis()
+		# encryption variables
+		self.gen_ring_poly()
+		self.q = q
+		self.P = self.q ** 3
+		self.key_gen()
 		return
+
+	def gen_ring_poly(self):
+		# this will generate the cyclotomic polynomial
+		fn = [1] + (self.N-1)*[0] + [1]
+		self.fn = Poly( fn )
+		return
+
+	def key_gen(self):
+		# generate secret key, public key, and evaluation key
+		self.sk_gen()
+		self.pk_gen()
+		self.evk_gen()
+		return
+
+	def sk_gen(self):
+		# generate secret key
+		self.sk = self.gen_binary(N=self.N)
+		return
+
+	def pk_gen(self):
+		# generate public key
+		# pk = ( b , a )
+		# a <- uniform dist
+		# e <- normal dist
+		# s <- secret key
+		# b = -a*s + e
+		a = self.gen_uniform(self.q,self.N)
+		e = self.gen_normal(N=self.N)
+
+		b = a * -1
+		b = b * self.sk
+		quo,b = b / self.fn
+		b = b + e
+		#b = b % self.q
+		b = self.ring_mod( b, self.q )
+
+		self.pk = ( b , a )
+		return
+
+	def evk_gen(self):
+		# generate relinearization key
+		# rlk = ( b' , a' )
+		# a' <- uniform dist (P*q)
+		# e  <- normal dist
+		# s  <- secret key
+		# b' = -a*s + e + P*s^2
+		a = self.gen_uniform( self.q*self.P, self.N )
+		e = self.gen_normal(N=self.N)
+
+		ss = self.sk * self.sk
+		quo,ss = ss / self.fn
+		ss = ss * self.P
+		
+		b = a * -1
+		b = b * self.sk
+		quo,b = b / self.fn
+		b = b + e
+
+		b = b + ss
+		
+		b = self.ring_mod( b, self.q * self.P )
+
+		self.evk = ( b, a )
+		return
+
+	def gen_binary(self,N=None):
+		# generate a binary polynomial
+		if (N == None):
+			N = self.N
+		arr = np.random.randint(-1,2,size=[1,N]).tolist()[0]
+		return Poly( arr )
+
+	def gen_normal(self,center=0,std=2,N=None):
+		# generate a normal distribution of integers
+		if (N == None):
+			N = self.N
+		arr = np.random.normal(center,std,size=[1,N]).tolist()[0]
+		arr = Poly( arr )
+		arr.floor()
+		return arr
+
+	def gen_uniform(self,q,N=None):
+		# generate a uniform distribution of integers
+		if (N == None):
+			N = self.N
+		q = min(q, 2**63 )
+		arr = np.random.randint(0,q,size=[1,N]).tolist()[0]
+		return Poly( arr )
+
+	def gen_zo(self,p,N=None):
+		# generate a zo distribution. {-1,0,1} with a 
+		# p/2 probability for choosing -1,1 and a 1-p 
+		# probability of choosing 0
+		if (N == None):
+			N = self.N
+		arr = np.random.choice( [0,1,-1], size=[1,N], p=[1-p,p/2,p/2] ).tolist()[0]
+		return Poly( arr )
+
+	def encrypt(self, m):
+		# encode a plaintext polynomial into a ciphertext polynomial
+		for ind, i in enumerate(m):
+			m[ind] = i.real
+		m = Poly( m )
+		m = m.copy()
+		#print( m )
+		#m = m % self.q
+		m = self.ring_mod( m, self.q )
+
+		# v <- ZO(0.5) , e0 <- normal dist, e1 < normal dist
+		v = self.gen_zo( 0.5, self.N )
+		e0 = self.gen_normal(N=self.N)
+		e1 = self.gen_normal(N=self.N)
+
+		# c0 = v * pk[0] + m + e0 (mod q)
+		c0 = v * self.pk[0]
+		quo,c0 = c0 / self.fn
+		c0 = c0 + m
+		c0 = c0 + e0
+		#c0 = c0 % self.q
+		c0 = self.ring_mod( c0, self.q )
+
+		# c1 = v * pk[1] + e1 (mod q)
+		c1 = v * self.pk[1]
+		quo,c1 = c1 / self.fn
+		c1 = c1 + e1
+		#c1 = c1 % self.q
+		c1 = self.ring_mod( c1, self.q )
+
+		return ( c0 , c1 )
+
+	def decrypt(self, ct):
+		# decrypt ciphertext to plaintext polynomial
+
+		# m = ct[0] + ct[1] * s (mod q)
+		m = ct[1] * self.sk
+		quo,m = m / self.fn
+		m = m + ct[0]
+		#m = m % self.q
+		m = self.ring_mod( m, self.q )
+
+		return m
+
+	def ct_add(self, ct0, ct1):
+		# this will return a ciphertext polynomial
+		# of the addition of two ciphertexts
+		c0 = ct0[0] + ct1[0]
+		c0 = self.ring_mod( c0, self.q )
+
+		c1 = ct0[1] + ct1[1]
+		c1 = self.ring_mod( c1, self.q )
+
+		return ( c0, c1 )
+
+	def ct_mult(self, ct0, ct1):
+		# this will return a ciphertext polynomial
+		# of multiplied ciphertexts
+		c0 = ct0[0] * ct1[0]
+		quo,c0 = c0 / self.fn
+		c0 = self.ring_mod( c0, self.q )
+
+		c1 = (ct0[0] * ct1[1]) + (ct0[1] * ct1[0])
+		quo,c1 = c1 / self.fn
+		c1 = self.ring_mod( c1, self.q )
+
+		c2 = (ct0[1] * ct1[1])
+		quo,c2 = c2 / self.fn
+		c2 = self.ring_mod( c2, self.q )
+
+		# relinearize the three terms to two
+		r0 = c2 * self.evk[0]
+		quo,r0 = r0 / self.fn
+		r0 = r0 / self.P
+		r0 = round(r0)
+		r0 = r0 + c0
+		r0 = self.ring_mod( r0, self.q )
+
+		r1 = c2 * self.evk[1]
+		quo,r1 = r1 / self.fn
+		r1 = r1 / self.P
+		r1 = round(r1)
+		r1 = r1 + c1
+		r1 = self.ring_mod( r1, self.q )
+
+		return ( r0, r1 )
+
+	def ring_mod(self, p, q=None):
+		# mod q with range (-q/2,q/2]
+		q = self.q if q == None else q
+		p = p.copy()
+		p = p % q
+		for ind, i in enumerate(p):
+			if (i > q/2):
+				p[ind] = i - q
+		return p
+
 
 	def create_sigma_R_basis(self):
 		# this will create a sigma_R_basis matrix
@@ -29,7 +230,6 @@ class CKKS():
 		# set self.sigma_R_basis as CRT^-1
 		self.sigma_R_basis = v.transpose()
 		return 
-		
 
 	def Vandermonde(self,X,N):
 		# this function will return a MxN Vandermonde matrix when given
@@ -136,6 +336,10 @@ class CKKS():
 	def encode(self, z):
 		# this function will encode a complex vector into
 		# an integer polynomial
+
+		while ( len(z) < self.N/2 ):
+			z.append( 0 )
+		
 		scaled = self.pi_inverse(z)
 		scaled = scaled * self.delta
 
@@ -165,15 +369,30 @@ class CKKS():
 
 def main():
 
-	es = CKKS()
+	es = CKKS(delta=2**10)
 
-	m = es.encode( [ 1 + 2j, 3 - 4j ] )
+	za = [ 1 + 2j, 3 - 4j ]
+	zb = [ 1 + 0j, 0 + 0j ]
 
-	print( m )
+	# plaintext vectors
+	ma = es.encode( za )
+	mb = es.encode( zb )
 
-	z = es.decode( m )
+	#z = es.decode( m )
+	#print( z )
 
-	print( z )
+	# ciphertext polynomials
+	ca = es.encrypt( ma )
+	cb = es.encrypt( mb )
+
+	cc = es.ct_mult( ca, cb )
+
+	mc = es.decrypt( cc )
+
+	zc = es.decode( mc )
+	print(f'za: {za}')
+	print(f'zb: {zb}')
+	print(f'zc: {zc}')
 
 	return
 
