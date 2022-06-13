@@ -90,7 +90,7 @@ class Poly():
 			return copy
 
 		if (type(other) != type(self)):
-			raise TypeError
+			return NotImplemented
 
 		sz = max(self.size(),other.size())
 		res = [0] * sz
@@ -100,6 +100,19 @@ class Poly():
 			res[ind] += j
 
 		return Poly(res)
+
+	def __radd__(self,other):
+		# add two polynomials together, new deg would 
+		# be max(deg1,deg2)
+
+		if (type(other) == int or type(other) == float):
+			copy = self.copy()
+			for ind,i in enumerate(copy):
+				copy[ind] = i + other
+			return copy
+
+		return NotImplemented
+
 
 	def __sub__(self,other):
 		# sub two polynomials together, new deg would 
@@ -112,7 +125,7 @@ class Poly():
 			return copy
 
 		if (type(other) != type(self)):
-			raise TypeError
+			return NotImplemented
 
 		sz = max(self.size(),other.size())
 		res = [0] * sz
@@ -133,7 +146,7 @@ class Poly():
 			return copy
 
 		if (type(other) != type(self)):
-			raise TypeError
+			return NotImplemented
 
 		sz = self.deg() + other.deg() + 1
 		res = [0] * sz
@@ -150,6 +163,17 @@ class Poly():
 
 		return ret
 
+	def __rmul__(self,other):
+		# multiply two polynomials together
+
+		if (type(other) == int or type(other) == float):
+			copy = self.copy()
+			for ind,i in enumerate(copy):
+				copy[ind] = i * other
+			return copy
+
+		return NotImplemented
+
 	def __truediv__(self,other):
 		# div two polynomials together
 		# return quotient and remainder
@@ -163,7 +187,7 @@ class Poly():
 			return copy
 
 		if (type(other) != type(self)):
-			raise TypeError
+			return NotImplemented
 
 		se = self.copy()
 		ot = other.copy()
@@ -226,10 +250,26 @@ class Poly():
 		# (the length of the list)
 		return len(self.poly)
 
+	def calc(self,x):
+		# this will evaluate the polynomial given x
+		ret = 0
+		for ind,i in enumerate(self):
+			ret += i * (x ** ind)
+
+		return ret
+
+	def __len__(self):
+		# returns the size of the polynomial
+		return len(self.poly)
+
 	def polyprint(self):
 		# print the list in the polynomial
 		print(self.poly)
 		return
+
+	def __str__(self):
+		# returns print version of polynomial
+		return f'{self.poly}'
 
 	def zero_deg(self):
 		# this function will get rid of leading zeros in polynomial
@@ -250,8 +290,14 @@ class Poly():
 		# this function will round each coefficient
 		for ind,i in enumerate(self.poly):
 			self.poly[ind] = round(i)
-		
 		return self
+
+	def __round__(self):
+		# this function will use python's round()
+		cpy = self.copy()
+		for ind, i in enumerate(cpy):
+			cpy[ind] = round(i)
+		return cpy
 
 def main():
 	# testing environment for the class poly
@@ -339,10 +385,23 @@ def testing_add_int():
 
 	x = Poly([0,1,2,3,4])
 
-	y = x * 5.5
+	#y = x * 5.5
+	y = 2 * x
 
-	x.polyprint()
-	y.polyprint()
+	#x.polyprint()
+	#y.polyprint()
+	print(f'x: {x}')
+	print(f'y: {y}')
+
+	return
+
+def testing_calc():
+
+	x = Poly([1,2,3,4])
+
+	print( x.calc(1) )
+	
+	print( x.calc(3) )
 
 	return
 
@@ -350,5 +409,6 @@ if __name__ == '__main__':
 	#main()
 	#testing_copy()
 	#test_equal()
-	testing_add_int()
+	#testing_add_int()
+	testing_calc()
 	pass
