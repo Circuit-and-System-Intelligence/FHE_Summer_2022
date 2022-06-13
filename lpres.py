@@ -264,7 +264,7 @@ class LPR():
 		scaled_pt = scaled_pt % self.t
 		decrypted_pt = scaled_pt
 
-		decrypted_pt.polyprint()
+		#decrypted_pt.polyprint()
 
 		# return the first term of the polynomial, which is the plaintext
 		return int(decrypted_pt[0])
