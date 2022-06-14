@@ -11,7 +11,7 @@ import numpy as np
 
 class CKKS():
 
-	def __init__(self,M=8,delta=64,q=2**20):
+	def __init__(self,M=8,delta=64,L=3,q0=2**12):
 		self.M = M
 		self.N = M // 2
 		# encoding variables
@@ -20,7 +20,9 @@ class CKKS():
 		self.create_sigma_R_basis()
 		# encryption variables
 		self.gen_ring_poly()
-		self.q = q
+		self.L = L
+		self.q0= q0
+		self.q = (self.delta ** self.L) * self.q0
 		self.P = self.q ** 3
 		self.key_gen()
 		return
@@ -84,7 +86,7 @@ class CKKS():
 
 		b = b + ss
 		
-		b = self.ring_mod( b, self.q * self.P )
+		b = self.ring_mod( b, (self.q * self.P) )
 
 		self.evk = ( b, a )
 		return
@@ -152,45 +154,69 @@ class CKKS():
 		#c1 = c1 % self.q
 		c1 = self.ring_mod( c1, self.q )
 
-		return ( c0 , c1 )
+		return [ ( c0 , c1 ), self.L ]
 
 	def decrypt(self, ct):
 		# decrypt ciphertext to plaintext polynomial
 
 		# m = ct[0] + ct[1] * s (mod q)
-		m = ct[1] * self.sk
+		m = ct[0][1] * self.sk
 		quo,m = m / self.fn
-		m = m + ct[0]
+		m = m + ct[0][0]
 		#m = m % self.q
-		m = self.ring_mod( m, self.q )
+		q = (self.delta ** ct[1] ) * self.q0
+		m = self.ring_mod( m, q )
 
 		return m
+
+	def rescale(self, ct):
+		# rescale the ciphertext for level l to l-1
+		c0= ct[0][0] / self.delta
+		c1= ct[0][1] / self.delta
+		l = ct[1] - 1
+		q = (self.delta ** l) * self.q0
+		c0= self.ring_mod( c0, q )
+		c1= self.ring_mod( c1, q )
+		return [ (c0, c1), l ]
 
 	def ct_add(self, ct0, ct1):
 		# this will return a ciphertext polynomial
 		# of the addition of two ciphertexts
-		c0 = ct0[0] + ct1[0]
+		c0 = ct0[0][0] + ct1[0][0]
 		c0 = self.ring_mod( c0, self.q )
 
-		c1 = ct0[1] + ct1[1]
+		c1 = ct0[0][1] + ct1[0][1]
 		c1 = self.ring_mod( c1, self.q )
 
-		return ( c0, c1 )
+		return [ ( c0, c1 ), ct0[1] ]
 
 	def ct_mult(self, ct0, ct1):
 		# this will return a ciphertext polynomial
 		# of multiplied ciphertexts
-		c0 = ct0[0] * ct1[0]
+		c0 = ct0[0][0] * ct1[0][0]
 		quo,c0 = c0 / self.fn
 		c0 = self.ring_mod( c0, self.q )
 
-		c1 = (ct0[0] * ct1[1]) + (ct0[1] * ct1[0])
+		c1 = (ct0[0][0] * ct1[0][1]) + (ct0[0][1] * ct1[0][0])
 		quo,c1 = c1 / self.fn
 		c1 = self.ring_mod( c1, self.q )
 
-		c2 = (ct0[1] * ct1[1])
+		c2 = (ct0[0][1] * ct1[0][1])
 		quo,c2 = c2 / self.fn
 		c2 = self.ring_mod( c2, self.q )
+
+		# test - decrypted of the three terms
+		m0 = c0
+		m1 = c1 * self.sk
+		quo,m1 = m1 / self.fn
+		m2 = c2 * self.sk
+		m2 = m2 * self.sk
+		quo,m2 = m2 / self.fn
+
+		m = (m0) + (m1) + (m2) 
+		m = self.ring_mod( m, self.q )
+		z = self.decode( m )
+		#print( z )
 
 		# relinearize the three terms to two
 		r0 = c2 * self.evk[0]
@@ -207,7 +233,7 @@ class CKKS():
 		r1 = r1 + c1
 		r1 = self.ring_mod( r1, self.q )
 
-		return ( r0, r1 )
+		return [ ( r0, r1 ), ct0[1] ]
 
 	def ring_mod(self, p, q=None):
 		# mod q with range (-q/2,q/2]
@@ -369,10 +395,10 @@ class CKKS():
 
 def main():
 
-	es = CKKS(delta=2**10)
+	es = CKKS(M=2**3,delta=2**7,q0=2**10,L=3)
 
 	za = [ 1 + 2j, 3 - 4j ]
-	zb = [ 1 + 0j, 0 + 0j ]
+	zb = [ 1 + 0j, 0 + 1j ]
 
 	# plaintext vectors
 	ma = es.encode( za )
@@ -386,6 +412,7 @@ def main():
 	cb = es.encrypt( mb )
 
 	cc = es.ct_mult( ca, cb )
+	cc = es.rescale( cc )
 
 	mc = es.decrypt( cc )
 
