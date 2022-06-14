@@ -6,8 +6,8 @@ import pickle
 
 def main():
 	func = test_multiplication
-	#test_multiplication()
-	test_func(n=5,func=func)
+	test_multiplication()
+	#test_func(n=5,func=func)
 	#testing_many_multiplication()
 	#test_lpr_calc()
 	return
@@ -88,21 +88,24 @@ def test_addition():
 def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
-	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(t=2,q=2**30,n=2**10)
+	# q= 2**30, t= 2**1, n=2**10
+	lpr = LPR(t=2,q=2**30,n=2**8)
 
-	# generate the two random numbers
+	# generate the two random numbers between [0,1]
 	#x = 0
 	#y = 0
 	x = np.random.randint(0,2)
 	y = np.random.randint(0,2)
 	print(f'{x} and {y} are randomly generated')
 
+	# encrypt both ciphertexts
 	ctx = lpr.encrypt(x)
 	cty = lpr.encrypt(y)
 
+	# multiply the ciphertexts
 	ctz = lpr.ctmult(ctx,cty)
 
+	# decrypt the ciphertext
 	answer = lpr.decrypt(ctz)
 
 	print(f'cipher text multiplication',end=': ')
