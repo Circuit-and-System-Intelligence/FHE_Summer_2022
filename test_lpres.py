@@ -6,10 +6,11 @@ import pickle
 
 def main():
 	func = test_multiplication
-	test_multiplication()
+	#test_multiplication()
 	#test_func(n=5,func=func)
 	#testing_many_multiplication()
 	#test_lpr_calc()
+	demo()
 	return
 
 def demo():

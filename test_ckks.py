@@ -10,9 +10,47 @@ from poly import Poly
 from vector import Vector, Matrix, matmul, vdot
 
 def main():
-	test_ct_mult()
-	test_ct_add()
+	#test_ct_mult()
+	#test_ct_add()
+	test_encrypt()
 	pass
+
+def test_encrypt():
+	print('Testing encryption')
+
+	es = CKKS(M=2**6, delta=2**15, q0=2**20, h=4, L=2, std=1.5)
+
+	za = [ 1 + 2j, 3 - 4j ]
+	#zb = [ 1 + 0j, 0 + 1j ]
+
+	# plaintext vectors
+	ma = es.encode( za )
+	#mb = es.encode( zb )
+
+	# ciphertext polynomials
+	ca = es.encrypt( ma )
+	#cb = es.encrypt( mb )
+	print(f'es.delta = {es.delta}')
+	print(f'N+2*Bclean= {es.N + (2*ca[3])}')
+
+	#cc = es.ct_mult( ca, cb )
+	#cc = es.rescale( cc )
+
+	mc = es.decrypt( ca )
+
+	zc = es.decode( mc )
+	print(f'za: {za}')
+	#print(f'zb: {zb}')
+	print(f'zc: {zc}')
+
+	return
+
+
+def test():
+
+	es = CKKS()
+
+	return
 
 def test_ct_mult():
 	print('Testing ct_mult')

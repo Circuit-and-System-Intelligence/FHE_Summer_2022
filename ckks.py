@@ -11,7 +11,7 @@ import numpy as np
 
 class CKKS():
 
-	def __init__(self,M=8,delta=64,L=3,q0=2**12):
+	def __init__(self,M=8,delta=64,L=3,q0=2**12,p=2**10,h=2,std=3.2):
 		self.M = M
 		self.N = M // 2
 		# encoding variables
@@ -22,6 +22,8 @@ class CKKS():
 		self.gen_ring_poly()
 		self.L = L
 		self.q0= q0
+		self.h = h
+		self.std = std
 		self.q = (self.delta ** self.L) * self.q0
 		self.P = self.q ** 3
 		self.key_gen()
@@ -42,7 +44,12 @@ class CKKS():
 
 	def sk_gen(self):
 		# generate secret key
-		self.sk = self.gen_binary(N=self.N)
+		#self.sk = self.gen_binary(N=self.N)
+		arr = np.random.choice([-1,1],size=self.h).tolist()
+		arr = arr + (self.N - self.h) * [0]
+		rng = np.random.default_rng()
+		rng.shuffle( arr )
+		self.sk = Poly( arr )
 		return
 
 	def pk_gen(self):
@@ -98,10 +105,12 @@ class CKKS():
 		arr = np.random.randint(-1,2,size=[1,N]).tolist()[0]
 		return Poly( arr )
 
-	def gen_normal(self,center=0,std=2,N=None):
+	def gen_normal(self,center=0,std=None,N=None):
 		# generate a normal distribution of integers
 		if (N == None):
 			N = self.N
+		if (std == None):
+			std = self.std
 		arr = np.random.normal(center,std,size=[1,N]).tolist()[0]
 		arr = Poly( arr )
 		arr.floor()
@@ -129,9 +138,11 @@ class CKKS():
 		for ind, i in enumerate(m):
 			m[ind] = i.real
 		m = Poly( m )
+		cm = m.copy()
 		m = m.copy()
 		#print( m )
 		#m = m % self.q
+		#print( self.q )
 		m = self.ring_mod( m, self.q )
 
 		# v <- ZO(0.5) , e0 <- normal dist, e1 < normal dist
@@ -154,7 +165,13 @@ class CKKS():
 		#c1 = c1 % self.q
 		c1 = self.ring_mod( c1, self.q )
 
-		return [ ( c0 , c1 ), self.L ]
+		# calculate canonical inifity norm of m
+		vn = self.canonical_inf_norm( cm )
+
+		# calculate Bclean
+		Bclean = (8*np.sqrt(2)*self.std*self.N) + (6*self.std*np.sqrt(self.N)) + (16*self.std*np.sqrt(self.h*self.N)) 
+
+		return [ ( c0 , c1 ), self.L, vn, Bclean ]
 
 	def decrypt(self, ct):
 		# decrypt ciphertext to plaintext polynomial
@@ -165,6 +182,7 @@ class CKKS():
 		m = m + ct[0][0]
 		#m = m % self.q
 		q = (self.delta ** ct[1] ) * self.q0
+		#print( q )
 		m = self.ring_mod( m, q )
 
 		return m
@@ -177,33 +195,55 @@ class CKKS():
 		q = (self.delta ** l) * self.q0
 		c0= self.ring_mod( c0, q )
 		c1= self.ring_mod( c1, q )
-		return [ (c0, c1), l ]
+
+		# calculate v
+		v = ct[2] / self.delta
+
+		# calculate b
+		bscale = np.sqrt( self.N / 3 ) * ( 3 + (8 * np.sqrt( self.h ) ) )
+		b = ( ct[3] / self.delta ) + bscale
+
+		return [ (c0, c1), l, v, b ]
 
 	def ct_add(self, ct0, ct1):
 		# this will return a ciphertext polynomial
 		# of the addition of two ciphertexts
+
+		# calculate q ( q[l] )	
+		q = (self.delta ** ct0[1] ) * self.q0
+
 		c0 = ct0[0][0] + ct1[0][0]
-		c0 = self.ring_mod( c0, self.q )
+		c0 = self.ring_mod( c0, q )
 
 		c1 = ct0[0][1] + ct1[0][1]
-		c1 = self.ring_mod( c1, self.q )
+		c1 = self.ring_mod( c1, q )
 
-		return [ ( c0, c1 ), ct0[1] ]
+		# calculate new v
+		v = ct0[2] + ct1[2]
+		
+		# calculate new b
+		b = ct0[3] + ct1[3]
+
+		return [ ( c0, c1 ), ct0[1], v, b ]
 
 	def ct_mult(self, ct0, ct1):
 		# this will return a ciphertext polynomial
 		# of multiplied ciphertexts
+
+		# calculate q ( q[l] )	
+		q = (self.delta ** ct0[1] ) * self.q0
+
 		c0 = ct0[0][0] * ct1[0][0]
 		quo,c0 = c0 / self.fn
-		c0 = self.ring_mod( c0, self.q )
+		c0 = self.ring_mod( c0, q )
 
 		c1 = (ct0[0][0] * ct1[0][1]) + (ct0[0][1] * ct1[0][0])
 		quo,c1 = c1 / self.fn
-		c1 = self.ring_mod( c1, self.q )
+		c1 = self.ring_mod( c1, q )
 
 		c2 = (ct0[0][1] * ct1[0][1])
 		quo,c2 = c2 / self.fn
-		c2 = self.ring_mod( c2, self.q )
+		c2 = self.ring_mod( c2, q )
 
 		# test - decrypted of the three terms
 		m0 = c0
@@ -214,7 +254,7 @@ class CKKS():
 		quo,m2 = m2 / self.fn
 
 		m = (m0) + (m1) + (m2) 
-		m = self.ring_mod( m, self.q )
+		m = self.ring_mod( m, q )
 		z = self.decode( m )
 		#print( z )
 
@@ -224,16 +264,25 @@ class CKKS():
 		r0 = r0 / self.P
 		r0 = round(r0)
 		r0 = r0 + c0
-		r0 = self.ring_mod( r0, self.q )
+		r0 = self.ring_mod( r0, q )
 
 		r1 = c2 * self.evk[1]
 		quo,r1 = r1 / self.fn
 		r1 = r1 / self.P
 		r1 = round(r1)
 		r1 = r1 + c1
-		r1 = self.ring_mod( r1, self.q )
+		r1 = self.ring_mod( r1, q )
 
-		return [ ( r0, r1 ), ct0[1] ]
+		# calculate new v
+		v = ct0[2] * ct1[2]
+		
+		# calculate new b
+		bscale = np.sqrt( self.N / 3 ) * ( 3 + (8 * np.sqrt( self.h ) ) )
+		bks = 8 * self.std * self.N / np.sqrt( 3 )
+		bmult = (bks * q / self.P) + bscale
+		b = (ct0[2]*ct1[3]) + (ct0[3]*ct1[2]) + (ct0[3]*ct1[3])
+
+		return [ ( r0, r1 ), ct0[1], v, b]
 
 	def ring_mod(self, p, q=None):
 		# mod q with range (-q/2,q/2]
@@ -245,6 +294,19 @@ class CKKS():
 				p[ind] = i - q
 		return p
 
+	def canonical_inf_norm(self, p):
+		# this function will return the canonical infinity norm
+		# of the polynomial p
+		p = p.copy()
+
+		sp = self.sigma( p )
+		#print( sp )
+
+		mx = 0
+		for i in sp:
+			mx = max( mx, abs( i ) )
+
+		return mx
 
 	def create_sigma_R_basis(self):
 		# this will create a sigma_R_basis matrix
@@ -395,7 +457,7 @@ class CKKS():
 
 def main():
 
-	es = CKKS(M=2**3,delta=2**7,q0=2**10,L=3)
+	es = CKKS(M=2**5,delta=2**10,q0=2**15,L=3)
 
 	za = [ 1 + 2j, 3 - 4j ]
 	zb = [ 1 + 0j, 0 + 1j ]
@@ -410,9 +472,19 @@ def main():
 	# ciphertext polynomials
 	ca = es.encrypt( ma )
 	cb = es.encrypt( mb )
+	print(f'ca.b = {ca[3]}')
+	print(f'cb.b = {cb[3]}')
+	print(f'es.delta = {es.delta}')
+	print(f'ca.v = {ca[2]}')
+	print(f'cb.v = {cb[2]}')
 
-	cc = es.ct_mult( ca, cb )
-	cc = es.rescale( cc )
+	cc = es.ct_add( ca, cb )
+	print(f'cc.v = {cc[2]}')
+	print(f'cc.b = {cc[3]}')
+	print(' ')
+	#cc = es.rescale( cc )
+	#print(f'cc.v = {cc[2]}')
+	#print(f'cc.b = {cc[3]}')
 
 	mc = es.decrypt( cc )
 
