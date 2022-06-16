@@ -10,7 +10,8 @@ def main():
 	#test_func(n=5,func=func)
 	#testing_many_multiplication()
 	#test_lpr_calc()
-	demo()
+	#demo()
+	test_rlwe()
 	return
 
 def demo():
@@ -307,6 +308,36 @@ def test_manual_decrypt():
 	dec.round()
 	dec.polyprint()
 	print(' ')
+
+	return
+
+def test_rlwe():
+
+	n = 10000
+	q = 2 ** 8
+
+	#a = []
+	#b = []
+	a = Poly()
+	b = Poly()
+	
+	es = LPR(q=q,n=2**4)
+
+	for i in range(n):
+		#a.append( es.gen_uniform_poly() )
+		#b.append( es.gen_uniform_poly() )
+		#a = a + es.gen_uniform_poly()
+		#b = b + es.gen_uniform_poly()
+		es.gen_pk()
+		pk = es.pk
+		a = a + pk[1]
+		b = b + pk[0]
+
+	da = a / n
+	db = b / n
+	
+	print( da )
+	print( db )
 
 	return
 
