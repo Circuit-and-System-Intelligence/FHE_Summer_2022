@@ -10,6 +10,7 @@
 
 import numpy as np
 from numpy.polynomial import polynomial as p
+import random
 import sys
 
 from poly import Poly
@@ -75,6 +76,14 @@ class LPR():
 		# of only 0's and 1's for the secret key
 		self.sk = self.gen_binary_poly()
 		#self.sk = self.gen_normal_poly()
+		'''
+		# set hamming weight of secret key to 64
+		if (self.n > 128 ):
+			sk = [1]*64
+			sk = sk + [0]*(self.n-64)
+			np.random.shuffle( sk )
+			self.sk = Poly( sk )
+		'''
 		return
 
 	def gen_pk(self,test=None):
@@ -93,19 +102,9 @@ class LPR():
 			e = Poly([0,-1,1,-1,2,-2,-3,-1])
 
 		# create a new polynomial _a which is -a
-		'''
-		_a = []
-		for i in a:
-			_a.append(-1*i)
-		_a = Poly(_a)
-		'''
 		_a = a * -1
 
 		# then set e = -e
-		'''
-		for ind, i in enumerate(e):
-			e[ind] = -1 * i
-		'''
 		e = e * -1
 
 		# create b from (-a * sk) - e
@@ -123,17 +122,6 @@ class LPR():
 
 		# create the different masks for the rlk key
 		self.rlk = []
-		'''
-		ss = self.polymult(self.sk,self.sk)
-		'''
-
-		if (test == 1):
-			pregen = []
-			pregen.append( ( Poly([182,174,245,89,3,176,60,162]) , Poly([0,3,0,-4,-2,1,2,-3]) ) )
-			pregen.append( ( Poly([60,186,134,177,240,28,50,218]) , Poly([-2,1,3,-3,-4,1,-3,1]) ) )
-			pregen.append( ( Poly([122,144,143,158,23,81,240,137]) , Poly([2,1,-2,-3,1,1,-1,-1]) ) )
-			pregen.append( ( Poly([212,77,255,165,216,115,221,239]) , Poly([-1,-2,-1,0,-4,-3,1,1]) ) )
-			pregen.append( ( Poly([191,190,56,62,149,118,52,95]) , Poly([1,-1,1,3,-1,-4,0,1]) ) )
 
 		#a = self.gen_uniform_poly()
 		#e = self.gen_normal_poly()
@@ -144,24 +132,12 @@ class LPR():
 			if (test == 1):
 				a = pregen[i][0]
 				e = pregen[i][1]
-			'''
-			_a = a.copy()
-			for jnd, j in enumerate(_a):
-				_a[jnd] = -1 * j
-			for jnd, j in enumerate(e):
-				e[jnd] = -1 * j
-			'''
 			_a = a * -1
 			e = e * -1
 
 			b = self.polyadd( self.polymult(_a, self.sk), e)
 			T = self.T ** i
 			ss = self.sk * T
-			'''
-			s2 = ss.copy()
-			for jnd, j in enumerate(s2):
-				s2[jnd] = j * T 
-			'''
 			s2 = self.polymult( ss, self.sk )
 			b = self.polyadd( b, s2 )
 			self.rlk.append( (b,a) )
@@ -216,10 +192,12 @@ class LPR():
 		m = [pt]
 		m = Poly(m)
 		m = m % self.q
+		#print( m )
 
 		delta = self.q // self.t
 		scaled_m = m.copy()
-		scaled_m[0] = delta * scaled_m[0] % self.q
+		#scaled_m[0] = delta * scaled_m[0] % self.q
+		scaled_m = ( scaled_m * delta ) % self.q
 		# create a new m, which is scaled my q//t % q
 		# generated new error polynomials
 		e1 = self.gen_normal_poly()
@@ -249,19 +227,11 @@ class LPR():
 		# scaled_pt = ct[1]*sk + ct[0]
 		#scaled_pt = self.polyadd( self.polymult( ct[1], self.sk ), ct[0] )
 		scaled_pt = self.polyadd( ( ct[1] * self.sk ), ct[0] )
-		'''
-		decrypted_pt = []
-		# scale each coefficient by t/q % t
-		for ind, i in enumerate( scaled_pt ):
-			decrypted_pt.append(  round(i * self.t / self.q ) % self.t )
-		
-		# create a polynomial from the list
-		decrypted_pt = Poly(decrypted_pt)
-		'''
 
 		scaled_pt = scaled_pt * ( self.t / self.q)
 		scaled_pt.round()
 		scaled_pt = scaled_pt % self.t
+		print( scaled_pt )
 		decrypted_pt = scaled_pt
 
 		#decrypted_pt.polyprint()
@@ -270,11 +240,11 @@ class LPR():
 		return int(decrypted_pt[0])
 
 	def decrypt3(self,ct):
-		#print('here')
+
 		t0 = ct[0]
 		t1 = self.polymult( self.sk, ct[1] )
 		t2 = self.polymult( self.polymult( self.sk, self.sk ), ct[2] )
-		#scaled_pt = self.polyadd( self.polymult( self.polymult( self.sk, self.sk ), ct[2] ), self.polyadd( self.polymult( ct[1], self.sk ), ct[0] ) )
+
 		scaled_pt = self.polyadd( self.polyadd( t2, t1), t0 )
 		decrypted_pt = []
 		# scale each coefficient by t/q % t
@@ -401,8 +371,6 @@ class LPR():
 		summ1 = Poly()
 
 		for i in range(self.l+1):
-			#summ0 = self.polyadd( summ0, self.polymult(self.rlk[i][0], c2T[i] ) )
-			#summ1 = self.polyadd( summ1, self.polymult(self.rlk[i][1], c2T[i] ) )
 			summ0 = summ0 + ( self.rlk[i][0] * c2T[i] )
 			summ1 = summ1 + ( self.rlk[i][1] * c2T[i] )
 		
@@ -414,9 +382,6 @@ class LPR():
 
 		_c0 = _c0 % self.q
 		_c1 = _c1 % self.q
-		
-		#_c0 = self.polyadd( c0, summ0 )
-		#_c1 = self.polyadd( c1, summ1 )
 
 		return (_c0, _c1)
 
@@ -505,10 +470,9 @@ class LPR():
 		# with coefficients ranging from [0,q)
 		if (q == None):
 			q = self.q
-		q = min(q, 2**63)
 		a = []
 		for i in range(self.n):
-			a.append( np.random.randint(0,q) )
+			a.append( random.randint(0,q) )
 		a = Poly(a)
 
 		return a
