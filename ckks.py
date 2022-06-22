@@ -8,6 +8,7 @@
 from poly import Poly
 from vector import Vector, Matrix, vdot, matmul, linalg
 import numpy as np
+import random
 
 class CKKS():
 
@@ -120,8 +121,9 @@ class CKKS():
 		# generate a uniform distribution of integers
 		if (N == None):
 			N = self.N
-		q = min(q, 2**63 )
-		arr = np.random.randint(0,q,size=[1,N]).tolist()[0]
+		arr = []
+		for i in range(N):
+			arr.append( random.randint(0,q) )
 		return Poly( arr )
 
 	def gen_zo(self,p,N=None):
@@ -345,6 +347,9 @@ class CKKS():
 		roots = [ self.xi ** (2 * i + 1) for i in range(N) ]
 
 		A = self.Vandermonde(X=roots,N=N)
+
+		#print( A )
+		#print( self.sigma_R_basis.transpose() )
 
 		# solve the linear equation
 		coeffs = linalg(A, z)

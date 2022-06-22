@@ -6,12 +6,12 @@ import pickle
 
 def main():
 	func = test_multiplication
+	#main_test()
 	#test_multiplication()
 	#test_func(n=5,func=func)
-	#testing_many_multiplication()
+	testing_many_multiplication()
 	#test_lpr_calc()
 	#demo()
-	test_rlwe()
 	return
 
 def demo():
@@ -43,7 +43,7 @@ def main_test():
 	# encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR()
+	lpr = LPR(q=2**15,T=4,t=2**8,n=2**10)
 
 	# generate a plaintext
 	#pt = 5
@@ -91,7 +91,7 @@ def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
 	# q= 2**30, t= 2**1, n=2**10
-	lpr = LPR(t=2,q=2**30,n=2**8)
+	lpr = LPR(t=2,q=2**30,n=2**10,T=4)
 
 	# generate the two random numbers between [0,1]
 	#x = 0
@@ -156,6 +156,7 @@ def testing_many_multiplication():
 
 	# q= 2**15, t= 2**8, n=2**4
 	lpr = LPR(t=2,n=2**4,q=2**31)
+	lpr = LPR(t=2,n=2**10,q=2**35,T=4)
 
 	a = 1
 	b = 10
