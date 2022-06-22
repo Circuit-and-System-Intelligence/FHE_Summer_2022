@@ -25,8 +25,8 @@ class CKKS():
 		self.q0= q0
 		self.h = h
 		self.std = std
-		self.q = (self.delta ** self.L) * self.q0
-		self.P = self.q ** 3
+		self.q = self.q0 * (self.delta ** self.L) 
+		self.P = self.q ** 8
 		self.key_gen()
 		return
 
@@ -369,7 +369,7 @@ class CKKS():
 
 		for i in range(N):
 			x = self.xi ** (2*i + 1)
-			out = p.calc(x)
+			out = p.evaluate(x)
 			outputs.append(out)
 
 		return Vector( outputs )

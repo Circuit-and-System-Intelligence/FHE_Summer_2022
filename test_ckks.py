@@ -10,15 +10,15 @@ from poly import Poly
 from vector import Vector, Matrix, matmul, vdot
 
 def main():
-	test_ct_mult()
+	#test_ct_mult()
 	#test_ct_add()
-	#test_encrypt()
+	test_encrypt()
 	pass
 
 def test_encrypt():
 	print('Testing encryption')
 
-	es = CKKS(M=2**2, delta=2**4, q0=2**4, h=1, L=1, std=3.2)
+	es = CKKS(M=2**2, delta=2**10, q0=2**15, h=1, L=2, std=3.2)
 
 	#print(f'es.sk: {es.sk}')
 	#print(f'es.pk[0]: {es.pk[0]}')
