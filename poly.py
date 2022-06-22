@@ -250,7 +250,7 @@ class Poly():
 		# (the length of the list)
 		return len(self.poly)
 
-	def calc(self,x):
+	def evaluate(self,x):
 		# this will evaluate the polynomial given x
 		ret = 0
 		for ind,i in enumerate(self):
@@ -394,13 +394,13 @@ def testing_add_int():
 
 	return
 
-def testing_calc():
+def testing_eval():
 
 	x = Poly([1,2,3,4])
 
-	print( x.calc(1) )
+	print( x.evaluate(1) )
 	
-	print( x.calc(3) )
+	print( x.evaluate(3) )
 
 	return
 
@@ -409,5 +409,5 @@ if __name__ == '__main__':
 	#testing_copy()
 	#test_equal()
 	#testing_add_int()
-	testing_calc()
+	testing_eval()
 	pass
