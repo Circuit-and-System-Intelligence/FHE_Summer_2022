@@ -312,5 +312,35 @@ def test_manual_decrypt():
 
 	return
 
+def test_rlwe():
+
+	n = 10000
+	q = 2 ** 8
+
+	#a = []
+	#b = []
+	a = Poly()
+	b = Poly()
+	
+	es = LPR(q=q,n=2**4)
+
+	for i in range(n):
+		#a.append( es.gen_uniform_poly() )
+		#b.append( es.gen_uniform_poly() )
+		#a = a + es.gen_uniform_poly()
+		#b = b + es.gen_uniform_poly()
+		es.gen_pk()
+		pk = es.pk
+		a = a + pk[1]
+		b = b + pk[0]
+
+	da = a / n
+	db = b / n
+	
+	print( da )
+	print( db )
+
+	return
+
 if __name__ == '__main__':
   main()
