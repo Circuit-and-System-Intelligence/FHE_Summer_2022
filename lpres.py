@@ -74,8 +74,7 @@ class LPR():
 		# calls the different functions to generate the keys
 		self.gen_sk()
 		self.gen_pk()
-		#self.gen_rlk1()
-		self.gen_rlk2()
+		self.gen_rlk()
 		
 	def gen_sk(self):
 		# call the gen_binary_poly key to create a polynomial
@@ -121,37 +120,7 @@ class LPR():
 		self.pk = (b,a)
 		return
 	
-	def gen_rlk1(self,test=None):
-		# use change of base rule for logs to calculate logT(q)
-		# using log2 because most likely self.q and self.T are in base 2
-		self.l = int(np.floor(np.log2(self.q)/np.log2(self.T)))
-
-		# create the different masks for the rlk key
-		self.rlk = []
-
-		#a = self.gen_uniform_poly()
-		#e = self.gen_normal_poly()
-		for i in range(self.l+1):
-			# generate the different random polynomials needed
-			a = self.gen_uniform_poly()
-			e = self.gen_normal_poly()
-			if (test == 1):
-				a = pregen[i][0]
-				e = pregen[i][1]
-			_a = a * -1
-			e = e * -1
-
-			b = self.polyadd( self.polymult(_a, self.sk), e)
-			T = self.T ** i
-			ss = self.sk * T
-			s2 = self.polymult( ss, self.sk )
-			b = self.polyadd( b, s2 )
-			self.rlk.append( (b,a) )
-			
-		#self.rlk = rlk.copy()
-		return
-	
-	def gen_rlk2(self):
+	def gen_rlk(self):
 
 		# define p for relin2
 		# bigger p means less noise (I think)
@@ -337,7 +306,7 @@ class LPR():
 			assert c1 == Poly([40,189,27,73,242,152,98,40])
 			assert c2 == Poly([22,86,133,29,199,110,199,50])
 
-		ret = self.relin2(c0,c1,c2)
+		ret = self.relin(c0,c1,c2)
 
 		return ret
 
@@ -367,31 +336,7 @@ class LPR():
 		return (ret,(c0,c1,c2))
 		'''
 
-	def relin1(self,c0,c1,c2):
-		# still work in progress, not completed
-		# calculate c2T, which would be c2 in base T
-
-		c2T = self.poly_base_change(c2,self.q,self.T)
-
-		summ0 = Poly()
-		summ1 = Poly()
-
-		for i in range(self.l+1):
-			summ0 = summ0 + ( self.rlk[i][0] * c2T[i] )
-			summ1 = summ1 + ( self.rlk[i][1] * c2T[i] )
-		
-		q,summ0 = summ0 / self.fn
-		q,summ1 = summ1 / self.fn
-
-		_c0 = c0 + summ0
-		_c1 = c1 + summ1
-
-		_c0 = _c0 % self.q
-		_c1 = _c1 % self.q
-
-		return (_c0, _c1)
-
-	def relin2(self,c0,c1,c2):
+	def relin(self,c0,c1,c2):
 		# c20 = (c2 * rlk[0]/p)
 		c20 = self.opcount.poly_mul_poly( c2, self.rlk[0] ) #c20 = c2 * self.rlk[0]	
 		quo,c20 = self.opcount.poly_div_poly( c20, self.fn ) #quo,c20 = c20 / self.fn
