@@ -8,17 +8,20 @@
 from ckks import CKKS
 from poly import Poly
 from vector import Vector, Matrix, matmul, vdot
+import sys
 
 def main():
-	#test_ct_mult()
+	test_ct_mult()
 	#test_ct_add()
-	test_encrypt()
+	#test_encrypt()
 	pass
 
 def test_encrypt():
 	print('Testing encryption')
 
-	es = CKKS(M=2**2, delta=2**10, q0=2**15, h=1, L=2, std=3.2)
+	es = CKKS(M=2**2, delta=2**7, q0=2**8, h=1, L=1, std=3.2)
+	print(f'es.p: {es.p}')
+	print(f'es.delta: {es.delta}')
 
 	#print(f'es.sk: {es.sk}')
 	#print(f'es.pk[0]: {es.pk[0]}')
@@ -30,6 +33,7 @@ def test_encrypt():
 
 	# plaintext vectors
 	ma = es.encode( za )
+	print( ma )
 	#mb = es.encode( zb )
 
 	# ciphertext polynomials
@@ -44,6 +48,7 @@ def test_encrypt():
 	#cc = es.rescale( cc )
 
 	mc = es.decrypt( ca )
+	print( mc )
 
 	zc = es.decode( mc )
 	print(f'za: {za}')
@@ -62,24 +67,38 @@ def test():
 def test_ct_mult():
 	print('Testing ct_mult')
 
-	es = CKKS(M=2**6, delta=2**14, q0=2**20, L=1)
+	es = CKKS(M=2**2, delta=2**10, q0=2**25, h=1, L=1)
 
 	za = [ 1 + 2j, 3 - 4j ]
 	zb = [ 1.5 + 0j, 0 + 1j ]
-	za = [ 1 + 2j ]
+	za = [ 2 + 0j ]
 	zb = [ 2 + 1j ]
+
+	zd = [ 0 + 5j ]
+	
+	print( sys.getsizeof(es.q) )
+	print( es.q )
 
 	# plaintext vectors
 	ma = es.encode( za )
 	mb = es.encode( zb )
+	md = es.encode( zd )
 
 	# ciphertext polynomials
 	ca = es.encrypt( ma )
 	cb = es.encrypt( mb )
+	#cd = es.encrypt( md )
+
+	# rescale 
+	#cd = es.simple_rescale( cd )
+	#cd = es.rescale( cd )
 
 	# ciphertext multiplication and rescaling
 	cc = es.ct_mult( ca, cb )
 	cc = es.rescale( cc )
+
+	#cc = es.ct_mult( cc, cd )
+	#cc = es.rescale( cc )
 
 	# decryption
 	mc = es.decrypt( cc )
@@ -89,6 +108,7 @@ def test_ct_mult():
 
 	print(f'za: {za}')
 	print(f'zb: {zb}')
+	#print(f'zd: {zd}')
 	print(f'za * zb = zc')
 	print(f'zc: {zc}')
 	print(' ')
@@ -98,7 +118,7 @@ def test_ct_mult():
 def test_ct_add():
 	print('Testing ct_add')
 
-	es = CKKS(M=2**2, delta=2**4, q0=2**4, L=1)
+	es = CKKS(M=2**2, delta=2**4, q0=2**14, L=1)
 	es.sk = Poly( [0,-1] )
 	es.pk = ( Poly([-98, 64]), Poly([64, 98]) )
 
