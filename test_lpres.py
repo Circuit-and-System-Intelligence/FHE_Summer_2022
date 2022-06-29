@@ -6,14 +6,11 @@ import pickle
 
 def main():
 	func = test_multiplication
-	#main_test()
-	test_addition()
-	print(' ')
-	test_multiplication()
-	#test_func(n=500,func=func)
-	#testing_many_multiplication()
-	#test_lpr_calc()
-	#demo()
+	#small_q()
+	#large_q()
+	#generate_data()
+	#test_addition()
+	testing_many_multiplication()
 	return
 
 def demo():
@@ -45,11 +42,12 @@ def main_test():
 	# encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(q=2**15,T=4,t=2**8,n=2**10)
+	lpr = LPR(q=2**215,T=4,t=2,n=2**10)
 
 	# generate a plaintext
 	#pt = 5
-	pt = np.random.randint(0,50)
+	#pt = np.random.randint(0,50)
+	pt = np.random.randint(0,2)
 
 	# encrypt the plaintext
 	ct = lpr.encrypt(pt)
@@ -60,6 +58,8 @@ def main_test():
 	# print the results
 	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
 	print(f'{pt==recovered_pt}')
+	print(' ')
+	lpr.print_counter_info()
 
 	return
 
@@ -68,7 +68,7 @@ def test_addition():
 
 	# q= 2**15, t= 2**8, n=2**4
 	#lpr = LPR()
-	lpr = LPR(t=2,q=2**38,n=2**10,T=4,std=3.8)
+	lpr = LPR(t=2,q=2**128,n=2**10,T=4,std=3.8)
 
 	# generate the two random numbers
 	#x = 1
@@ -87,7 +87,7 @@ def test_addition():
 	print(f'cipher text addition',end=': ')
 	print(f'{x} + {y} = {answer}')
 	print(f'Addition test: { answer == (x^y) }')
-	print( lpr.opcount )
+	lpr.print_counter_info()
 	return 1 if (answer == (x+y)) else 0
 
 def test_multiplication():
@@ -159,15 +159,24 @@ def test_base_change():
 def testing_many_multiplication():
 
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(t=2,n=2**4,q=2**31)
-	lpr = LPR(t=2,q=2**38,n=2**10,T=4,std=3.8)
+	# lpr = LPR(t=2,n=2**4,q=2**31)
+	lpr = LPR(t=2,q=2**18,n=2**5,T=4,std=1.2)
 
 	a = 1
-	b = 10
-	base = 0
+	b = 0
 
 	cta = lpr.encrypt(a)
-	ctbase = lpr.encrypt(base)
+	ctb = lpr.encrypt(b)
+
+	ctc = lpr.ctmult(cta,ctb)
+
+	c = lpr.decrypt(ctc)
+
+	print(f'a: {a}')
+	print(f'b: {b}')
+	print(f'c: {c}')
+
+	return
 
 	for i in range(b):
 		ctbase = lpr.ctmult(ctbase,cta)
@@ -316,35 +325,220 @@ def test_manual_decrypt():
 
 	return
 
-def test_rlwe():
+def	demo_counter():
+	# this function will act as the test of adding two cipher texts
+	print('Small Addition n=2**4')
 
-	n = 10000
-	q = 2 ** 8
+	# q= 2**15, t= 2**8, n=2**4
+	#lpr = LPR()
+	lpr = LPR(t=2,q=2**38,n=2**4,T=4,std=3.8)
 
-	#a = []
-	#b = []
-	a = Poly()
-	b = Poly()
-	
-	es = LPR(q=q,n=2**4)
+	# generate the two random numbers
+	#x = 1
+	#y = 2
+	x = np.random.randint(0,2)
+	y = np.random.randint(0,2)
+	print(f'{x} and {y} are randomly generated')
 
-	for i in range(n):
-		#a.append( es.gen_uniform_poly() )
-		#b.append( es.gen_uniform_poly() )
-		#a = a + es.gen_uniform_poly()
-		#b = b + es.gen_uniform_poly()
-		es.gen_pk()
-		pk = es.pk
-		a = a + pk[1]
-		b = b + pk[0]
+	ctx = lpr.encrypt(x)
+	cty = lpr.encrypt(y)
 
-	da = a / n
-	db = b / n
-	
-	print( da )
-	print( db )
+	ctz = lpr.ctadd(ctx,cty)
+
+	answer = lpr.decrypt(ctz)
+
+	print(f'cipher text addition',end=': ')
+	print(f'{x} + {y} = {answer}')
+	print(f'Addition test: { answer == (x^y) }')
+	lpr.print_counter_info()
+	print(' ')
+	print(' ')
+
+	# this function will act as the test of adding two cipher texts
+	print('Large Addition n=2**10')
+
+	# q= 2**15, t= 2**8, n=2**4
+	#lpr = LPR()
+	lpr = LPR(t=2,q=2**38,n=2**10,T=4,std=3.8)
+
+	# generate the two random numbers
+	#x = 1
+	#y = 2
+	x = np.random.randint(0,2)
+	y = np.random.randint(0,2)
+	print(f'{x} and {y} are randomly generated')
+
+	ctx = lpr.encrypt(x)
+	cty = lpr.encrypt(y)
+
+	ctz = lpr.ctadd(ctx,cty)
+
+	answer = lpr.decrypt(ctz)
+
+	print(f'cipher text addition',end=': ')
+	print(f'{x} + {y} = {answer}')
+	print(f'Addition test: { answer == (x^y) }')
+	lpr.print_counter_info()
+	print(' ')
+	print(' ')
+
+	print('Small Multiplication n=2**4')
+
+	# q= 2**15, t= 2**8, n=2**4
+	#lpr = LPR()
+	lpr = LPR(t=2,q=2**38,n=2**4,T=4,std=3.8)
+
+	# generate the two random numbers
+	#x = 1
+	#y = 2
+	x = np.random.randint(0,2)
+	y = np.random.randint(0,2)
+	print(f'{x} and {y} are randomly generated')
+
+	ctx = lpr.encrypt(x)
+	cty = lpr.encrypt(y)
+
+	print('wow')
+	ctz = lpr.ctmult(ctx,cty)
+	print('here')
+
+	answer = lpr.decrypt(ctz)
+
+	print(f'cipher text multiplication',end=': ')
+	print(f'{x} * {y} = {answer}')
+	print(f'Multiplication test: { answer == (x*y) }')
+	lpr.print_counter_info()
+	print(' ')
+	print(' ')
+
+	# this function will act as the test of adding two cipher texts
+	print('Large Multiplication n=2**10')
+
+	# q= 2**15, t= 2**8, n=2**4
+	#lpr = LPR()
+	lpr = LPR(t=2,q=2**30,n=2**10,T=4,std=2.0)
+
+	# generate the two random numbers
+	#x = 1
+	#y = 2
+	x = np.random.randint(0,2)
+	y = np.random.randint(0,2)
+	print(f'{x} and {y} are randomly generated')
+
+	ctx = lpr.encrypt(x)
+	cty = lpr.encrypt(y)
+
+	ctz = lpr.ctmult(ctx,cty)
+
+	answer = lpr.decrypt(ctz)
+
+	print(f'cipher text multiplication',end=': ')
+	print(f'{x} * {y} = {answer}')
+	print(f'Multiplication test: { answer == (x*y) }')
+	lpr.print_counter_info()
+	print(' ')
 
 	return
+
+def small_q():
+	# this function will act as the test of multiplying two cipher texts
+	print('SMALL Q MULT')
+	print('small q = 2**15')
+	print('small n = 2**3')
+
+	# q= 2**15, t= 2**8, n=2**4
+	#lpr = LPR()
+	lpr = LPR(t=2,q=2**15,n=2**3,T=4,std=2.0)
+
+	# generate the two random numbers
+	#x = 1
+	#y = 2
+	x = np.random.randint(0,2)
+	y = np.random.randint(0,2)
+	print(f'{x} and {y} are randomly generated')
+
+	ctx = lpr.encrypt(x)
+	cty = lpr.encrypt(y)
+
+	ctz = lpr.ctmult(ctx,cty)
+
+	answer = lpr.decrypt(ctz)
+
+	print(f'cipher text multiplication',end=': ')
+	print(f'{x} * {y} = {answer}')
+	print(f'Multiplication test: { answer == (x*y) }')
+	lpr.print_counter_info()
+	print(' ')
+	return
+
+def large_q():
+	# this function will act as the test of multiplying two cipher texts
+	print('LARGE Q MULT')
+	print('large q = 2**20')
+	print('large n = 2**3')
+
+	# q= 2**15, t= 2**8, n=2**4
+	#lpr = LPR()
+	lpr = LPR(t=2,q=2**20,n=2**3,T=4,std=2.0)
+
+	# generate the two random numbers
+	#x = 1
+	#y = 2
+	x = np.random.randint(0,2)
+	y = np.random.randint(0,2)
+	print(f'{x} and {y} are randomly generated')
+
+	ctx = lpr.encrypt(x)
+	cty = lpr.encrypt(y)
+
+	ctz = lpr.ctmult(ctx,cty)
+
+	answer = lpr.decrypt(ctz)
+
+	print(f'cipher text multiplication',end=': ')
+	print(f'{x} * {y} = {answer}')
+	print(f'Multiplication test: { answer == (x*y) }')
+	lpr.print_counter_info()
+	print(' ')
+	return
+
+def generate_data():
+	# this function will generate the data for increasing q and increasing d for rings (x^d + 1)
+
+	with open("bfv_data.csv","w") as f:
+		f.write(f'q,d,enc_add,enc_mul,dec_add,dec_mul,key_add,key_mul\n')
+		for q in range(32,33):
+			for d in range(3,11):
+				lpr = LPR(t=2,q=2**q,n=2**d,std=2.0)
+				#for n in range(1000):
+				x = np.random.randint(0,2)
+				# y = np.random.randint(0,2)
+				ctx = lpr.encrypt(x)
+				# cty = lpr.encrypt(y)
+				# ctz = lpr.ctadd(ctx,cty)
+				z = lpr.decrypt(ctx)
+				assert z == x
+
+				enc_add = lpr.counters['enc'].add
+				enc_mul = lpr.counters['enc'].mul
+				enc_mod = lpr.counters['enc'].mod
+
+				dec_add = lpr.counters['dec'].add
+				dec_mul = lpr.counters['dec'].mul
+				dec_mod = lpr.counters['dec'].mod
+
+				key_add = lpr.counters['key'].add
+				key_mul = lpr.counters['key'].mul
+				key_mod = lpr.counters['key'].mod
+
+				add_add = lpr.counters['add'].add
+				add_mul = lpr.counters['add'].mul
+				add_mod = lpr.counters['add'].mod
+
+				# print(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul}')
+				# f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul},{add_add},{add_mul}\n')
+				f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul}\n')
+
 
 if __name__ == '__main__':
   main()

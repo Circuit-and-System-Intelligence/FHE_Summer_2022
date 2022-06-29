@@ -6,6 +6,8 @@
 # and different functions to perform operations
 # on the different polynomials
 
+from naive_modulus import naive_modulus
+
 class Poly():
 
 	def __init__(self,poly=None):

@@ -56,11 +56,8 @@ class LPR():
 		self.fn = Poly(self.fn)
 		# this will set the variable T, as needed for relinearization1 for BFV
 		self.T = T
-		if (self.T == None):
-			# if not defined, set T as the square root of q, rounded to highest up
-			self.T = int(np.ceil(np.sqrt(self.q)))
-		# create operations counter object
-		self.opcount = OperationsCounter()
+
+		self.gen_op_counters()
 
 		# this will set the keys as none, but will then immediately generate
 		# a public key, a private key, and a relinearization key
@@ -94,6 +91,9 @@ class LPR():
 	def gen_pk(self,test=None):
 		if (self.sk == None):
 			return
+		# set counter object for keys
+		oc = self.counters['key']
+
 		# generate a uniformly distributed polynomial with coefs
 		# from [0,q)
 		a = self.gen_uniform_poly()
@@ -107,13 +107,13 @@ class LPR():
 			e = Poly([0,-1,1,-1,2,-2,-3,-1])
 
 		# create a new polynomial _a which is -a
-		_a = self.opcount.poly_mul_num(a, -1) #_a = a * -1
+		_a = oc.poly_mul_num(a, -1) #_a = a * -1
 
 		# then set e = -e
-		e = self.opcount.poly_mul_num(e, -1) #e = e * -1
+		e = oc.poly_mul_num(e, -1) #e = e * -1
 
 		# create b from (-a * sk) - e
-		b = self.polyadd( self.polymult(_a, self.sk),e)
+		b = self.polyadd( self.polymult(_a, self.sk, oc),e, oc)
 
 		# set the public key to the tuple (b,a)
 		# or (-[a*sk + e], a)
@@ -121,6 +121,9 @@ class LPR():
 		return
 	
 	def gen_rlk(self):
+
+		# set counter object for keys
+		oc = self.counters['key']
 
 		# define p for relin2
 		# bigger p means less noise (I think)
@@ -143,38 +146,60 @@ class LPR():
 		a = self.gen_uniform_poly(q=self.q*self.p)
 
 		# p * (sk^2)
-		ss = self.opcount.poly_mul_poly(self.sk,self.sk) #ss = self.sk * self.sk
-		quo,ss = self.opcount.poly_div_poly(ss, self.fn) #quo,ss = ss / self.fn
-		ss = self.opcount.poly_mul_num( ss, self.p ) #ss = ss * self.p
+		ss = oc.poly_mul_poly(self.sk,self.sk) #ss = self.sk * self.sk
+		quo,ss = oc.poly_div_poly(ss, self.fn) #quo,ss = ss / self.fn
+		ss = oc.poly_mul_num( ss, self.p ) #ss = ss * self.p
 
 		# -(a*s + e)
-		b = self.opcount.poly_mul_poly(a,self.sk) #b = a * self.sk
-		quo,b = self.opcount.poly_div_poly(b, self.fn) #quo,b = b / self.fn
-		b = self.opcount.poly_add_poly( b, e ) #b = b + e
-		b = self.opcount.poly_mul_num( b, -1 ) #b = b * -1
+		b = oc.poly_mul_poly(a,self.sk) #b = a * self.sk
+		quo,b = oc.poly_div_poly(b, self.fn) #quo,b = b / self.fn
+		b = oc.poly_add_poly( b, e ) #b = b + e
+		b = oc.poly_mul_num( b, -1 ) #b = b * -1
 
 		# -(a*s + e) + p*sk^2
-		b = self.opcount.poly_add_poly( ss, b ) #b = ss + b
+		b = oc.poly_add_poly( ss, b ) #b = ss + b
 
-		qp = self.opcount.num_mul(self.q, self.p)
-		b = self.opcount.poly_mod( b, qp ) #b = b % (self.q * self.p)
+		qp = oc.num_mul(self.q, self.p)
+		b = oc.poly_mod( b, qp ) #b = b % (self.q * self.p)
 
 		self.rlk = (b, a)
 		return 
+
+	def gen_op_counters(self):
+		# this function will generate operation counters
+		# for encrypting, decrypting, key generation, 
+		# addition, multiplication, and relinearization
+
+		# create operations counter object
+		self.opcount = OperationsCounter()
+		self.counters = {}
+		self.counters['enc'] = OperationsCounter()
+		self.counters['dec'] = OperationsCounter()
+		self.counters['key'] = OperationsCounter()
+		self.counters['add'] = OperationsCounter()
+		self.counters['mul'] = OperationsCounter()
+		self.counters['relin'] = OperationsCounter()
+
+		# these would be use in the different functions
+
 	
 	def encrypt(self,pt=0,test=None):
 		# encode plaintext into a plaintext polynomial
 		# create polynomial m, which is pt%q
+
+		# set encryption counter object 
+		oc = self.counters['enc']
+
 		m = [pt]
 		m = Poly(m)
-		m = self.opcount.poly_mod( m, self.q ) #m = m % self.q
+		m = oc.poly_mod( m, self.q ) #m = m % self.q
 		#print( m )
 
-		delta = self.opcount.floor_div(self.q, self.t) #delta = self.q // self.t
+		delta = oc.floor_div(self.q, self.t) #delta = self.q // self.t
 		scaled_m = m.copy()
 		#scaled_m[0] = delta * scaled_m[0] % self.q
-		scaled_m = self.opcount.poly_mul_num( scaled_m, delta ) #scaled_m = (scaled_m * delta) 
-		scaled_m = self.opcount.poly_mod( scaled_m, self.q ) #scaled_m = scaled_m  % self.q
+		scaled_m = oc.poly_mul_num( scaled_m, delta ) #scaled_m = (scaled_m * delta) 
+		scaled_m = oc.poly_mod( scaled_m, self.q ) #scaled_m = scaled_m  % self.q
 		# create a new m, which is scaled my q//t % q
 		# generated new error polynomials
 		e1 = self.gen_normal_poly()
@@ -191,24 +216,27 @@ class LPR():
 			e2 = Poly([0,-1,3,-2,2,1,-1,1])
 
 		# create c0 = pk[0]*u + e1 + scaled_m
-		ct0 = self.polyadd( self.polyadd( self.polymult( self.pk[0], u), e1), scaled_m)
+		ct0 = self.polyadd( self.polyadd( self.polymult( self.pk[0], u, oc), e1, oc), scaled_m, oc)
 
 		# create c1 = pk[1]*u + e2
-		ct1 = self.polyadd( self.polymult( self.pk[1], u), e2)
+		ct1 = self.polyadd( self.polymult( self.pk[1], u, oc), e2, oc)
 
 		return (ct0, ct1)
 
 	def decrypt(self,ct):
 		# decrypt the cipher text to get the plaintext equivalent
 
+		# set decryption counter object
+		oc = self.counters['dec']
+
 		# scaled_pt = ct[1]*sk + ct[0]
 		#scaled_pt = self.polyadd( self.polymult( ct[1], self.sk ), ct[0] )
-		scaled_pt = self.polyadd( self.opcount.poly_mul_poly( ct[1] , self.sk ), ct[0] )
+		scaled_pt = self.polyadd( oc.poly_mul_poly( ct[1] , self.sk ), ct[0], oc )
 
-		tq = self.opcount.true_div( self.t, self.q )
-		scaled_pt = self.opcount.poly_mul_num( scaled_pt, tq ) #scaled_pt = scaled_pt * ( self.t / self.q)
+		tq = oc.true_div( self.t, self.q )
+		scaled_pt = oc.poly_mul_num( scaled_pt, tq ) #scaled_pt = scaled_pt * ( self.t / self.q)
 		scaled_pt.round()
-		scaled_pt = self.opcount.poly_mod( scaled_pt, self.t ) #scaled_pt = scaled_pt % self.t
+		scaled_pt = oc.poly_mod( scaled_pt, self.t ) #scaled_pt = scaled_pt % self.t
 		print( scaled_pt )
 		decrypted_pt = scaled_pt
 
@@ -240,8 +268,12 @@ class LPR():
 	def ctadd(self, x, y):
 		# X and Y are two cipher texts generated
 		# by this encrypted scheme
-		ct0 = self.polyadd(x[0],y[0])
-		ct1 = self.polyadd(x[1],y[1])
+
+		# set adder counter object
+		oc = self.counters['add']
+
+		ct0 = self.polyadd(x[0],y[0],oc)
+		ct1 = self.polyadd(x[1],y[1],oc)
 
 		ct = (ct0,ct1)
 
@@ -251,19 +283,22 @@ class LPR():
 		# multiply cipher texts X and Y and return ciphertext X*Y
 		# still work in progress, not working yet
 
+		# set multiplier counter object
+		oc = self.counters['mul']
+
 		z = []
 		z.append(x[0].copy())
 		z.append(x[1].copy())
 
 		# scale both polynomials in z by (t/q)
 		for ind, num in enumerate(z[0]):
-			nt = self.opcount.num_mul( num, self.t )
-			ntq= self.opcount.true_div( nt, self.q )
+			nt = oc.num_mul( num, self.t )
+			ntq= oc.true_div( nt, self.q )
 			z[0][ind] = round(num * self.t / self.q)
 
 		for ind, num in enumerate(z[1]):
-			nt = self.opcount.num_mul( num, self.t )
-			ntq= self.opcount.true_div( nt, self.q )
+			nt = oc.num_mul( num, self.t )
+			ntq= oc.true_div( nt, self.q )
 			z[1][ind] = round(num * self.t / self.q)
 
 
@@ -275,31 +310,31 @@ class LPR():
 		#c2 = self.polymult( z[1], y[1] )
 
 		# c0 = ct0[0]*ct1[0]
-		c0 = self.opcount.poly_mul_poly( x[0], y[0] ) #c0 = x[0] * y[0]
-		quo,c0 = self.opcount.poly_div_poly( c0, self.fn ) #quo,c0 = c0 / self.fn
-		tq = self.opcount.true_div( self.t, self.q )
-		c0 = self.opcount.poly_mul_num( c0, tq ) #c0 = c0 * ( self.t / self.q )
+		c0 = oc.poly_mul_poly( x[0], y[0] ) #c0 = x[0] * y[0]
+		quo,c0 = oc.poly_div_poly( c0, self.fn ) #quo,c0 = c0 / self.fn
+		tq = oc.true_div( self.t, self.q )
+		c0 = oc.poly_mul_num( c0, tq ) #c0 = c0 * ( self.t / self.q )
 		c0.round()
-		c0 = self.opcount.poly_mod( c0, self.q ) #c0 = c0 % self.q
+		c0 = oc.poly_mod( c0, self.q ) #c0 = c0 % self.q
 
 		# c1 = ct0[0]*ct1[1] + ct0[1]*ct1[0]
-		ca = self.opcount.poly_mul_poly( x[0], y[1] )
-		cb = self.opcount.poly_mul_poly( x[1], y[0] )
-		c1 = self.opcount.poly_add_poly( ca, cb ) #c1 = (x[0]*y[1]) + (x[1]*y[0])
+		ca = oc.poly_mul_poly( x[0], y[1] )
+		cb = oc.poly_mul_poly( x[1], y[0] )
+		c1 = oc.poly_add_poly( ca, cb ) #c1 = (x[0]*y[1]) + (x[1]*y[0])
 
-		quo,c1 = self.opcount.poly_div_poly( c1, self.fn ) #quo,c1 = c1 / self.fn
-		tq = self.opcount.true_div( self.t, self.q )
-		c1 = self.opcount.poly_mul_num( c1, tq ) #c1 = c1 * ( self.t / self.q )
+		quo,c1 = oc.poly_div_poly( c1, self.fn ) #quo,c1 = c1 / self.fn
+		tq = oc.true_div( self.t, self.q )
+		c1 = oc.poly_mul_num( c1, tq ) #c1 = c1 * ( self.t / self.q )
 		c1.round()
-		c1 = self.opcount.poly_mod( c1, self.q ) #c1 = c1 % self.q
+		c1 = oc.poly_mod( c1, self.q ) #c1 = c1 % self.q
 
 		# c2 = ct0[1]*ct1[1]
-		c2 = self.opcount.poly_mul_poly( x[1], y[1] ) #c2 = x[1] * y[1]
-		quo,c2 = self.opcount.poly_div_poly( c2, self.fn ) #quo,c2 = c2 / self.fn
-		tq = self.opcount.true_div( self.t, self.q )
-		c2 = self.opcount.poly_mul_num( c2, tq ) #c2 = c2 * ( self.t / self.q )
+		c2 = oc.poly_mul_poly( x[1], y[1] ) #c2 = x[1] * y[1]
+		quo,c2 = oc.poly_div_poly( c2, self.fn ) #quo,c2 = c2 / self.fn
+		tq = oc.true_div( self.t, self.q )
+		c2 = oc.poly_mul_num( c2, tq ) #c2 = c2 * ( self.t / self.q )
 		c2.round()
-		c2 = self.opcount.poly_mod( c2, self.q ) #c2 = c2 % self.q
+		c2 = oc.poly_mod( c2, self.q ) #c2 = c2 % self.q
 
 		if (test == 1):
 			assert c0 == Poly([142,144,235,21,224,118,152,123])
@@ -337,27 +372,31 @@ class LPR():
 		'''
 
 	def relin(self,c0,c1,c2):
+
+		# set relin object
+		oc = self.counters['relin']
+
 		# c20 = (c2 * rlk[0]/p)
-		c20 = self.opcount.poly_mul_poly( c2, self.rlk[0] ) #c20 = c2 * self.rlk[0]	
-		quo,c20 = self.opcount.poly_div_poly( c20, self.fn ) #quo,c20 = c20 / self.fn
-		c20 = self.opcount.poly_div_num( c20, self.p ) #c20 = c20 / self.p
+		c20 = oc.poly_mul_poly( c2, self.rlk[0] ) #c20 = c2 * self.rlk[0]	
+		quo,c20 = oc.poly_div_poly( c20, self.fn ) #quo,c20 = c20 / self.fn
+		c20 = oc.poly_div_num( c20, self.p ) #c20 = c20 / self.p
 		c20.round()
-		c20 = self.opcount.poly_mod( c20, self.q ) #c20 = c20 % self.q
+		c20 = oc.poly_mod( c20, self.q ) #c20 = c20 % self.q
 
 		# c21 = (c2 * rlk[1]/p)
-		c21 = self.opcount.poly_mul_poly( c2, self.rlk[1] ) #c21 = c2 * self.rlk[1]	
-		quo, c21 = self.opcount.poly_div_poly( c21, self.fn ) #quo,c21 = c21 / self.fn
-		c21 = self.opcount.poly_div_num( c21, self.p ) #c21 = c21 / self.p
+		c21 = oc.poly_mul_poly( c2, self.rlk[1] ) #c21 = c2 * self.rlk[1]	
+		quo, c21 = oc.poly_div_poly( c21, self.fn ) #quo,c21 = c21 / self.fn
+		c21 = oc.poly_div_num( c21, self.p ) #c21 = c21 / self.p
 		c21.round()
-		c21 = self.opcount.poly_mod( c21, self.q ) #c21 = c21 % self.q
+		c21 = oc.poly_mod( c21, self.q ) #c21 = c21 % self.q
 
 		# c0' = c0 + c20
 		# c1' = c1 + c21
-		_c0 = self.opcount.poly_add_poly( c0, c20 ) #_c0 = c0 + c20
-		_c1 = self.opcount.poly_add_poly( c1, c21 ) #_c1 = c1 + c21
+		_c0 = oc.poly_add_poly( c0, c20 ) #_c0 = c0 + c20
+		_c1 = oc.poly_add_poly( c1, c21 ) #_c1 = c1 + c21
 
-		_c0 = self.opcount.poly_mod( _c0, self.q ) #_c0 = _c0 % self.q
-		_c1 = self.opcount.poly_mod( _c1, self.q ) #_c1 = _c1 % self.q
+		_c0 = oc.poly_mod( _c0, self.q ) #_c0 = _c0 % self.q
+		_c1 = oc.poly_mod( _c1, self.q ) #_c1 = _c1 % self.q
 
 		return (_c0, _c1)
 
@@ -372,25 +411,30 @@ class LPR():
 
 		return Poly(copy)
 
-	def polyadd(self, x, y):
+	def polyadd(self, x, y, oc=None):
 		# add two polynomials together and keep them 
 		# within the polynomial ring
-		z = self.opcount.poly_add_poly( x, y ) #z = x + y
-		quo,rem = self.opcount.poly_div_poly( z, self.fn ) #quo,rem = (z / self.fn)
+		if ( oc == None ):
+			oc = self.opcount
+		z = oc.poly_add_poly( x, y ) #z = x + y
+		quo,rem = oc.poly_div_poly( z, self.fn ) #quo,rem = (z / self.fn)
 		z = rem
 
-		z = self.opcount.poly_mod( z, self.q ) #z = z % self.q
+		z = oc.poly_mod( z, self.q ) #z = z % self.q
 		#z = self.mod(z)
 		return z
 
-	def polymult(self, x, y):
+	def polymult(self, x, y, oc=None):
 		# multiply two polynomials together and keep them 
 		# within the polynomial ring
-		z = self.opcount.poly_mul_poly( x, y ) #z = x * y
-		quo, rem = self.opcount.poly_div_poly( z, self.fn ) #quo, rem = (z / self.fn)
+		if ( oc == None ):
+			oc = self.opcount
+
+		z = oc.poly_mul_poly( x, y ) #z = x * y
+		quo, rem = oc.poly_div_poly( z, self.fn ) #quo, rem = (z / self.fn)
 		z = rem
 
-		z = self.opcount.poly_mod( z, self.q ) #z = z % self.q
+		z = oc.poly_mod( z, self.q ) #z = z % self.q
 		#z = self.mod(z)
 		return z
 
@@ -453,6 +497,24 @@ class LPR():
 
 		return base_poly
 
+	def print_counter_info(self):
+		# this function will print out the operation
+		# costs for each function (enc,dec,ctadd,ctmult...)
+
+		print('Encryption OpCount')
+		print( self.counters['enc'] )
+		print('\nDecryption OpCount')
+		print( self.counters['dec'] )
+		print('\nKeyGen OpCount')
+		print( self.counters['key'] )
+		print('\nAdd OpCount')
+		print( self.counters['add'] )
+		print('\nMul OpCount')
+		print( self.counters['mul'] )
+		print('\nRelin OpCount')
+		print( self.counters['relin'] )
+
+		
 if __name__ == '__main__':
 	main()
 	pass

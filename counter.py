@@ -6,12 +6,14 @@
 # when running programs
 
 from poly import Poly
+from naive_modulus import naive_modulus
+from naive_modulus import barrett
 
 class OperationsCounter():
 
 	def __init__(self):
 		self.add = 0
-		self.sub = 0
+		# self.sub = 0
 		self.mul = 0
 		self.div = 0
 		self.mod = 0
@@ -26,7 +28,7 @@ class OperationsCounter():
 	# count a simple subtraction between two
 	# numbers, e.g. float or int
 	def num_sub(self, x, y):
-		self.sub += 1
+		self.add += 1
 		return x - y
 
 	# count a simple multiplication between two
@@ -50,8 +52,11 @@ class OperationsCounter():
 	# count a simple modulus between two
 	# numbers, e.g. float or int
 	def num_mod(self, x, y):
+		return self.naive_modulus_count(x,y)
+		'''
 		self.mod += 1
 		return x % y
+		'''
 
 	# count operations of adding number to polynomial
 	def poly_add_num(self, p, c):
@@ -60,7 +65,7 @@ class OperationsCounter():
 
 	# count operations of subtracting number to polynomial
 	def poly_sub_num(self, p, c):
-		self.sub += len( p )
+		self.add += len( p )
 		return p - c
 
 	# count operations of multiplying number to polynomial
@@ -75,8 +80,14 @@ class OperationsCounter():
 
 	# count operations of modding number to polynomial
 	def poly_mod(self, p, c):
+		cpy = p.copy()
+		for ind, i in enumerate(cpy):
+			cpy[ind] = self.naive_modulus_count(i,c)
+		return cpy
+		'''
 		self.mod += len( p )
 		return p % c
+		'''
 
 	# count operations of adding polynomials
 	def poly_add_poly(self, p0, p1):
@@ -89,7 +100,7 @@ class OperationsCounter():
 	def poly_sub_poly(self, p0, p1):
 		# get the size of bigger polynomial
 		l = max( len(p0), len(p1) )
-		self.sub += l
+		self.add += l
 		return p0 - p1
 
 	# count operations of multiplying polynomials
@@ -112,19 +123,30 @@ class OperationsCounter():
 
 		self.div += dif
 		self.mul += ( dif * sz1 )
-		self.sub += ( dif * sz1 )
+		self.add += ( dif * sz1 )
 
 		return p0 / p1
+
+	# implement a mod function with addition and comparison
+	def naive_modulus_count(self, x, y):
+		# the naive_modulus would loop for x//y times, which
+		# will include one addition operation for each loop
+		self.add += int(abs( x // y ))
+		self.mod += 1
+		# if there was a cmp counter, it would be 1 + x//y
+		# self.comp += 1 + (x // y) 
+		return barrett(x,y) 
+		return naive_modulus(x,y)
 
 	# generate string to print information about current count
 	def __str__(self):
 		addstr = f'Add: {self.add}'
-		substr = f'Sub: {self.sub}'
+		# substr = f'Sub: {self.sub}'
 		mulstr = f'Mul: {self.mul}'
-		divstr = f'Div: {self.div}'
+		# divstr = f'Div: {self.div}'
 		modstr = f'Mod: {self.mod}'
 
-		output = f'{addstr}\n{substr}\n{mulstr}\n{divstr}\n{modstr}'
+		output = f'{addstr}\n{mulstr}\n{modstr}'
 		return output
 
 
