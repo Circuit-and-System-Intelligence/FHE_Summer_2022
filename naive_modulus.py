@@ -57,7 +57,7 @@ def barrett(a, n):
 	
 	two_k = k << 1
 	# q = floor(bitshift(1,2*k)/n)
-	q = int( (1 << two_k) / n )
+	q = int( (1 << two_k) // n )
 
 	# t = bitshift(a*q, -2*k)
 	t = (a*q) >> two_k
@@ -71,6 +71,74 @@ def barrett(a, n):
 	
 	assert c == a % n
 	return c
+
+class Montgomery():
+
+	def __init__(self,n=7,powr=4):
+		# define the n and r
+		self.n = n
+		self.r = 1 << powr
+		self.logr = powr
+		self.invr = self.inverse_modulus(self.r,self.n)
+		self.k = (self.r*self.invr - 1) // self.n
+
+	def inverse_modulus(self, a, n):
+		# this function will calculate the inverse of a mod n
+		# such that t*a === 1 mod n
+		# 
+		# this will be adapted from pseudo-code on wikipedia
+
+		t = 0
+		newt = 1
+		r = n
+		newr = a
+
+		while newr != 0:
+			quo = r // newr
+			t, newt = newt, (t - quo*newt)
+			r, newr = newr, (r - quo*newr)
+
+		if t < 0:
+			t += n
+
+		return t
+
+	def toMont(self, a):
+		# this function will convert into the Montgomery system
+		return (a*self.r) % self.n
+
+	def fromMont(self, a):
+		# this function will convert out of the Montgomery system
+		return ( a * self.invr ) % self.n
+
+	def multiplication(self, a, b):
+		# this will perform multiplication on too
+		# numbers already in the Montgomery system
+		# and return a number in the system
+		x = a*b
+	
+		s = ( x * self.k ) & (self.r-1)
+
+		t = x + (s*self.n)
+
+		u = t >> self.logr
+
+		if u > self.n:
+			u -= self.n
+
+		return u
+
+def test_mont():
+	# this function will test the montgomery system
+
+	mont = Montgomery(n=7,powr=4)
+
+	a = mont.toMont( 4 )
+	b = mont.toMont( 3 )
+
+	c = mont.multiplication( a, b )
+
+	print( mont.fromMont( c ) ) 
 
 
 def main():
@@ -95,4 +163,5 @@ def main():
 	print(f'the functions are equal')
 
 if __name__ == '__main__':
-	main()
+	#main()
+	test_mont()
