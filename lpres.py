@@ -135,12 +135,13 @@ class LPR():
 		sqrt_k = np.sqrt(k)
 
 		# hardcode B for now
-		B = 20
+		# B = 20
+		B = 9.2 * self.std
 
 		# ALPHA is a constant
 		ALPHA = 3.758
 
-		sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (B ** sqrt_k) / 5 
+		sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (B ** sqrt_k) / 9.2 
 
 		e = self.gen_normal_poly(std=sigma_prime)
 		a = self.gen_uniform_poly(q=self.q*self.p)

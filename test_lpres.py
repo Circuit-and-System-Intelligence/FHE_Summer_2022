@@ -8,9 +8,10 @@ def main():
 	func = test_multiplication
 	#small_q()
 	#large_q()
-	#generate_data()
+	generate_data()
 	#test_addition()
-	testing_many_multiplication()
+	#test_multiplication()
+	#testing_many_multiplication()
 	return
 
 def demo():
@@ -94,7 +95,7 @@ def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
 	# q= 2**30, t= 2**1, n=2**10
-	lpr = LPR(t=2,q=2**38,n=2**10,T=4,std=3.8)
+	lpr = LPR(t=2,q=2**60,n=2**11,T=4,std=2.0)
 
 	# generate the two random numbers between [0,1]
 	#x = 0
@@ -505,20 +506,28 @@ def large_q():
 def generate_data():
 	# this function will generate the data for increasing q and increasing d for rings (x^d + 1)
 
-	with open("bfv_data.csv","w") as f:
+	with open("data/bfv_upperQbound.txt","w") as f:
 		f.write(f'q,d,enc_add,enc_mul,dec_add,dec_mul,key_add,key_mul\n')
-		for q in range(32,33):
-			for d in range(3,11):
+		# f.write(f'n,q,ctmult\n')
+		for d in range(11,17):
+			for q in range(25,26,2):
+				print(f'q={q} d={d}')
 				lpr = LPR(t=2,q=2**q,n=2**d,std=2.0)
-				#for n in range(1000):
-				x = np.random.randint(0,2)
-				# y = np.random.randint(0,2)
-				ctx = lpr.encrypt(x)
-				# cty = lpr.encrypt(y)
-				# ctz = lpr.ctadd(ctx,cty)
-				z = lpr.decrypt(ctx)
-				assert z == x
-
+				skip = False
+				for n in range(1):
+					x = np.random.randint(0,2)
+					# y = np.random.randint(0,2)
+					ctx = lpr.encrypt(x)
+					# cty = lpr.encrypt(y)
+					# ctz = lpr.ctmult(ctx,cty)
+					z = lpr.decrypt(ctx)
+					'''
+					if (z != x):
+						f.write(f'{d},{q},False\n')
+						skip = True
+						break
+					'''
+					#assert z == x
 				enc_add = lpr.counters['enc'].add
 				enc_mul = lpr.counters['enc'].mul
 				enc_mod = lpr.counters['enc'].mod

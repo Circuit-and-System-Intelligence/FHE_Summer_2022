@@ -53,6 +53,7 @@ class OperationsCounter():
 	# numbers, e.g. float or int
 	def num_mod(self, x, y):
 		return self.naive_modulus_count(x,y)
+		#return self.barrett_count(x,y)
 		'''
 		self.mod += 1
 		return x % y
@@ -82,6 +83,7 @@ class OperationsCounter():
 	def poly_mod(self, p, c):
 		cpy = p.copy()
 		for ind, i in enumerate(cpy):
+			#cpy[ind] = self.barrett_count(i,c)
 			cpy[ind] = self.naive_modulus_count(i,c)
 		return cpy
 		'''
@@ -137,6 +139,13 @@ class OperationsCounter():
 		# self.comp += 1 + (x // y) 
 		return barrett(x,y) 
 		return naive_modulus(x,y)
+
+	def barrett_count(self, x, y):
+		# this will count the number of operations for
+		# barrett modulus reductions
+		self.mul += 2
+		self.add += 2
+		return barrett(x,y) 
 
 	# generate string to print information about current count
 	def __str__(self):
