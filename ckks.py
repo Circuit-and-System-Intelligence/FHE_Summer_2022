@@ -66,7 +66,7 @@ class CKKS():
 
 		b = a * -1
 		b = b * self.sk
-		quo,b = b / self.fn
+		quo,b = b // self.fn
 		b = b + e
 		b = b % self.q
 		#b = self.ring_mod( b, self.q )
@@ -85,12 +85,12 @@ class CKKS():
 		e = self.gen_normal(N=self.N)
 
 		ss = self.sk * self.sk
-		quo,ss = ss / self.fn
+		quo,ss = ss // self.fn
 		ss = ss * self.P
 		
 		b = a * -1
 		b = b * self.sk
-		quo,b = b / self.fn
+		quo,b = b // self.fn
 		b = b + e
 
 		b = b + ss
@@ -140,7 +140,7 @@ class CKKS():
 	def encrypt(self, m):
 		# encode a plaintext polynomial into a ciphertext polynomial
 		for ind, i in enumerate(m):
-			m[ind] = i.real
+			m[ind] = int( i.real )
 		m = Poly( m )
 		cm = m.copy()
 		m = m.copy()
@@ -157,7 +157,7 @@ class CKKS():
 
 		# c0 = v * pk[0] + m + e0 (mod q)
 		c0 = v * self.pk[0]
-		quo,c0 = c0 / self.fn
+		quo,c0 = c0 // self.fn
 		c0 = c0 + m
 		c0 = c0 + e0
 		c0 = c0 % self.q
@@ -165,7 +165,7 @@ class CKKS():
 
 		# c1 = v * pk[1] + e1 (mod q)
 		c1 = v * self.pk[1]
-		quo,c1 = c1 / self.fn
+		quo,c1 = c1 // self.fn
 		c1 = c1 + e1
 		c1 = c1 % self.q
 		#c1 = self.ring_mod( c1, self.q )
@@ -183,7 +183,7 @@ class CKKS():
 
 		# m = ct[0] + ct[1] * s (mod q)
 		m = ct[0][1] * self.sk
-		quo,m = m / self.fn
+		quo,m = m // self.fn
 		m = m + ct[0][0]
 		#m = m % self.q
 		q = (self.p ** ct[1] ) * self.q0 #q = (self.delta ** ct[1] ) * self.q0
@@ -194,8 +194,10 @@ class CKKS():
 
 	def rescale(self, ct):
 		# rescale the ciphertext for level l to l-1
-		c0= ct[0][0] / self.p #c0= ct[0][0] / self.delta
-		c1= ct[0][1] / self.p #c1= ct[0][1] / self.delta
+		print(f'ct[0][0]: {ct[0][0]}')
+		print(f'self.p: {self.p}')
+		c0= ct[0][0] // self.p #c0= ct[0][0] / self.delta
+		c1= ct[0][1] // self.p #c1= ct[0][1] / self.delta
 		c0 = round( c0 )
 		c1 = round( c1 )
 		l = ct[1] - 1
@@ -253,17 +255,17 @@ class CKKS():
 		q = (self.p ** ct0[1] ) * self.q0 #q = (self.delta ** ct0[1] ) * self.q0
 
 		c0 = ct0[0][0] * ct1[0][0]
-		quo,c0 = c0 / self.fn
+		quo,c0 = c0 // self.fn
 		#c0 = self.ring_mod( c0, q )
 		c0 = c0 % q
 
 		c1 = (ct0[0][0] * ct1[0][1]) + (ct0[0][1] * ct1[0][0])
-		quo,c1 = c1 / self.fn
+		quo,c1 = c1 // self.fn
 		#c1 = self.ring_mod( c1, q )
 		c1 = c1 % q
 
 		c2 = (ct0[0][1] * ct1[0][1])
-		quo,c2 = c2 / self.fn
+		quo,c2 = c2 // self.fn
 		#c2 = self.ring_mod( c2, q )
 		c2 = c2 % q
 
@@ -282,16 +284,16 @@ class CKKS():
 
 		# relinearize the three terms to two
 		r0 = c2 * self.evk[0]
-		quo,r0 = r0 / self.fn
-		r0 = r0 / self.P
+		quo,r0 = r0 // self.fn
+		r0 = r0 // self.P
 		r0 = round(r0)
 		r0 = r0 + c0
 		#r0 = self.ring_mod( r0, q )
 		r0 = r0 % q
 
 		r1 = c2 * self.evk[1]
-		quo,r1 = r1 / self.fn
-		r1 = r1 / self.P
+		quo,r1 = r1 // self.fn
+		r1 = r1 // self.P
 		r1 = round(r1)
 		r1 = r1 + c1
 		#r1 = self.ring_mod( r1, q )

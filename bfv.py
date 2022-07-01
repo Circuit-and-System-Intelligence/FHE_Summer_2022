@@ -42,8 +42,23 @@ def main():
 class LPR():
 
 	def __init__(self,q=2**15,t=2**8,n=2**4,std=2,fn=None,T=None):
-		# this init method will initialize the important variables
-		# needed for this encryption scheme
+		"""
+		this init method will initialize the important variables
+		needed for this encryption scheme, including keys
+
+		----- Variables -----
+		q 	- Cipher Text Modulus
+		t 	- Plain Text Modulus
+		n 	- Degree of Ring Polynomial
+		std - standard deviation for Gaussian distribution
+		fn 	- Cyclotomic Polynomial from n
+		
+		----- Keys -----
+		sk 	- secret key with hamming weight h=64
+		pk 	- public key for encrypting messages
+		rlk - relinearization key for reducing ciphertext size after multiplication 
+		"""
+
 		self.q = q
 		self.t = t
 		self.n = n
@@ -54,9 +69,8 @@ class LPR():
 		if (self.fn == None):
 			self.fn = [1] + [0]*((n)-1) + [1]
 		self.fn = Poly(self.fn)
-		# this will set the variable T, as needed for relinearization1 for BFV
-		self.T = T
 
+		# create operation counters for different methods in BFV
 		self.gen_op_counters()
 
 		# this will set the keys as none, but will then immediately generate
@@ -68,14 +82,19 @@ class LPR():
 
 
 	def gen_keys(self):
-		# calls the different functions to generate the keys
+		"""
+		Generate keys, generate secret key first then public 
+		and relinearization	keys afterwards
+		"""
 		self.gen_sk()
 		self.gen_pk()
 		self.gen_rlk()
 		
 	def gen_sk(self):
-		# call the gen_binary_poly key to create a polynomial
-		# of only 0's and 1's for the secret key
+		"""
+		call the gen_binary_poly key to create a polynomial
+		of only 0's and 1's for the secret key
+		"""
 		self.sk = self.gen_binary_poly()
 		#self.sk = self.gen_normal_poly()
 		
@@ -88,7 +107,21 @@ class LPR():
 		
 		return
 
-	def gen_pk(self,test=None):
+	def gen_pk(self):
+		"""
+		Generate public key from secret key and random polynomials.
+
+		----- Random Polynomials -----
+		a <- Uniform Distribution over q
+		e <- Normal Distribution with (mean = 0, standard deviation = self.std)
+
+		----- Calculation ----- 
+		b = -(a*sk + e)
+
+		----- Result -----
+		pk = (b , a)
+
+		"""
 		if (self.sk == None):
 			return
 		# set counter object for keys
@@ -101,10 +134,6 @@ class LPR():
 		# generate a normally distributed polynomial with integers
 		# generated from a center of 0 and std of 2
 		e = self.gen_normal_poly()
-
-		if (test == 1):
-			a = Poly([71,239,2,243,73,213,85,184])
-			e = Poly([0,-1,1,-1,2,-2,-3,-1])
 
 		# create a new polynomial _a which is -a
 		_a = oc.poly_mul_num(a, -1) #_a = a * -1
@@ -121,6 +150,22 @@ class LPR():
 		return
 	
 	def gen_rlk(self):
+		"""
+		Generate a relinearization key for ciphertext multiplication
+
+		----- Random Polynomials -----
+		a <- Uniformat Distribution over q*p
+		e <- Normal Distribution with (mean = 0, standard deviation = sigma_prime )
+
+		----- Calculation -----
+		p = q ** 3
+		sigma_prime = (alpha ** (1-sqrt(k))) * (q ** (k-sqrt(k))) * (B ** sqrt(k))
+		b = -(a*sk + e) + p*(sk^2)
+
+		----- Result -----
+		rlk = (b , a)
+
+		"""
 
 		# set counter object for keys
 		oc = self.counters['key']
@@ -184,9 +229,11 @@ class LPR():
 		# these would be use in the different functions
 
 	
-	def encrypt(self,pt=0,test=None):
-		# encode plaintext into a plaintext polynomial
-		# create polynomial m, which is pt%q
+	def encrypt(self,pt=0):
+		"""
+		encode plaintext into a plaintext polynomial
+		create polynomial m, which is pt%q
+		"""
 
 		# set encryption counter object 
 		oc = self.counters['enc']
@@ -206,15 +253,6 @@ class LPR():
 		e1 = self.gen_normal_poly()
 		e2 = self.gen_normal_poly()
 		u = self.gen_binary_poly()
-		if (test == 0):
-			u = Poly([1,1,1,1,1,1,0,1])
-			e1 = Poly([-2,-2,0,4,-3,-1,0,-4])
-			e2 = Poly([1,-1,1,3,-1,-4,0,1])
-
-		if (test == 1):
-			u = Poly([0,0,0,1,0,1,1,1])
-			e1 = Poly([6,0,1,1,-2,-2,-2,-2])
-			e2 = Poly([0,-1,3,-2,2,1,-1,1])
 
 		# create c0 = pk[0]*u + e1 + scaled_m
 		ct0 = self.polyadd( self.polyadd( self.polymult( self.pk[0], u, oc), e1, oc), scaled_m, oc)
@@ -246,26 +284,6 @@ class LPR():
 		# return the first term of the polynomial, which is the plaintext
 		return int(decrypted_pt[0])
 
-	def decrypt3(self,ct):
-
-		t0 = ct[0]
-		t1 = self.polymult( self.sk, ct[1] )
-		t2 = self.polymult( self.polymult( self.sk, self.sk ), ct[2] )
-
-		scaled_pt = self.polyadd( self.polyadd( t2, t1), t0 )
-		decrypted_pt = []
-		# scale each coefficient by t/q % t
-		for ind, i in enumerate( scaled_pt ):
-			scaled_pt[ind] = (  round(i * self.t / self.q ) % self.t )
-		
-		# create a polynomial from the list
-		decrypted_pt = Poly(decrypted_pt)
-
-		scaled_pt.polyprint()
-
-		return int(scaled_pt[0])
-
-
 	def ctadd(self, x, y):
 		# X and Y are two cipher texts generated
 		# by this encrypted scheme
@@ -280,7 +298,7 @@ class LPR():
 
 		return ct
 
-	def ctmult(self, x, y, test=None):
+	def ctmult(self, x, y):
 		# multiply cipher texts X and Y and return ciphertext X*Y
 		# still work in progress, not working yet
 
@@ -302,13 +320,6 @@ class LPR():
 			ntq= oc.true_div( nt, self.q )
 			z[1][ind] = round(num * self.t / self.q)
 
-
-		# c0 = ct0[0]*ct1[0]
-		#c0 = self.polymult( z[0], y[0] )
-		# c1 = ct0[0]*ct1[1] + ct0[1]*ct1[0]
-		#c1 = self.polyadd( self.polymult(z[0],y[1]), self.polymult(z[1],y[0]) )
-		# c2 = ct0[1]*ct1[1]
-		#c2 = self.polymult( z[1], y[1] )
 
 		# c0 = ct0[0]*ct1[0]
 		c0 = oc.poly_mul_poly( x[0], y[0] ) #c0 = x[0] * y[0]
@@ -337,40 +348,9 @@ class LPR():
 		c2.round()
 		c2 = oc.poly_mod( c2, self.q ) #c2 = c2 % self.q
 
-		if (test == 1):
-			assert c0 == Poly([142,144,235,21,224,118,152,123])
-			assert c1 == Poly([40,189,27,73,242,152,98,40])
-			assert c2 == Poly([22,86,133,29,199,110,199,50])
-
 		ret = self.relin(c0,c1,c2)
 
 		return ret
-
-		'''
-		failed code, did not produce correct multiplication
-		keeping commented out for later study with why it failed
-
-		# calculate fc0 
-		fc0 = self.polymult( x[0], y[0] )
-		for ind, i in enumerate(fc0):
-			fc0[ind] = round(i * self.t / self.q) #% self.q
-
-		# calculate fc1
-		t0 = self.polymult(x[1],y[0])
-		t1 = self.polymult(x[0],y[1])
-		fc1 = self.polyadd( t0, t1)
-		for ind, i in enumerate(fc1):
-			fc1[ind] = round(i * self.t / self.q) #% self.q
-
-		# calculate fc2
-		fc2 = self.polymult( x[1], y[1] )
-		for ind, i in enumerate(fc2):
-			fc2[ind] = round(i * self.t / self.q) #% self.q
-
-		ret = self.relin1(fc0,fc1,fc2)
-		return ret
-		return (ret,(c0,c1,c2))
-		'''
 
 	def relin(self,c0,c1,c2):
 
@@ -472,31 +452,6 @@ class LPR():
 		a = Poly(a)
 
 		return a
-
-	def poly_base_change(self,poly,q,T):
-		# change the base of a polynomial and
-		# return multiple polynomials of new base
-		# haven't tested this, don't know if it works
-		l = int(np.floor(np.log2(q)/np.log2(T)))
-		cpy = poly.copy()
-		base_poly = []
-
-		for ind, i in enumerate(cpy):
-			if i < 0:
-				cpy[ind] = i + self.q
-
-		for i in range(l+1):
-			mask = []
-			for jnd, j in enumerate(cpy):
-				_Tpow = T ** (i+1)
-				_T = T ** i
-				num = j % _Tpow
-				mask.append( int( num / _T ) )
-				cpy[jnd] -= num
-
-			base_poly.append( Poly(mask) )
-
-		return base_poly
 
 	def print_counter_info(self):
 		# this function will print out the operation

@@ -6,8 +6,6 @@
 # and different functions to perform operations
 # on the different polynomials
 
-from naive_modulus import naive_modulus
-
 class Poly():
 
 	def __init__(self,poly=None):
@@ -216,6 +214,63 @@ class Poly():
 		# start from biggest term, going to smallest term
 		for i in range(se.deg()-ot.deg(),-1,-1):
 			coef = copy[ot.deg() + i] / ot[-1] 
+			quo[i] = coef
+			for j in range(ot.size()):
+				copy[i+j] -= ot[j] * coef
+		
+		# add what remains from dividend to the remainder polynomial
+		for i in range(ot.deg()):
+			rem[i] += copy[i]
+
+		Ret = Poly(rem)
+		Ret.zero_deg()
+
+		Quo = Poly(quo)
+		Quo.zero_deg()
+
+		return (Quo, Ret)
+		#return (Poly(quo),Poly(rem))
+
+	def __floordiv__(self,other):
+		# div two polynomials together
+		# return quotient and remainder
+		# copy the polynomials so that the arguments
+		# are not affected by this computation
+
+		if (type(other) == int or type(other) == float):
+			copy = self.copy()
+			for ind,i in enumerate(copy):
+				copy[ind] = i // other
+			return copy
+
+		if (type(other) != type(self)):
+			return NotImplemented
+
+		se = self.copy()
+		ot = other.copy()
+		se.zero_deg()
+		ot.zero_deg()
+		quo = [0]*(se.deg()-ot.deg()+1)
+		rem = [0]*(ot.deg())
+
+		# if the divisor's degree is greater than the dividend's
+		# then return the 0 polynomial and the dividend
+		# as the divisor
+		if ( ot.deg() > se.deg() ):
+			copy = se.copy()
+			return (Poly(),copy)
+
+		copy = se.poly.copy()
+
+		# set error if dividing by 0
+		if ( ot[-1] == 0 and ot.size() == 1):
+			raise ValueError("Cannot divide by 0")
+
+		# use a for loop to find leading coefficient of quotient
+		# then substract the dividend by the divisor*quotient
+		# start from biggest term, going to smallest term
+		for i in range(se.deg()-ot.deg(),-1,-1):
+			coef = copy[ot.deg() + i] // ot[-1] 
 			quo[i] = coef
 			for j in range(ot.size()):
 				copy[i+j] -= ot[j] * coef

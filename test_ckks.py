@@ -67,38 +67,42 @@ def test():
 def test_ct_mult():
 	print('Testing ct_mult')
 
-	es = CKKS(M=2**2, delta=2**10, q0=2**25, h=1, L=1)
+	es = CKKS(M=2**15, delta=2**30, q0=2**140, h=64, L=5)
 
 	za = [ 1 + 2j, 3 - 4j ]
 	zb = [ 1.5 + 0j, 0 + 1j ]
-	za = [ 2 + 0j ]
-	zb = [ 2 + 1j ]
+	za = [ 1 + 0j ]
+	zb = [ 0 + 1j ]
 
 	zd = [ 0 + 5j ]
-	
-	print( sys.getsizeof(es.q) )
-	print( es.q )
 
 	# plaintext vectors
 	ma = es.encode( za )
 	mb = es.encode( zb )
-	md = es.encode( zd )
+	# md = es.encode( zd )
 
 	# ciphertext polynomials
 	ca = es.encrypt( ma )
 	cb = es.encrypt( mb )
-	#cd = es.encrypt( md )
+	print( ca[0][0] )
+	# cd = es.encrypt( md )
 
 	# rescale 
-	#cd = es.simple_rescale( cd )
+	# cd = es.simple_rescale( cd )
 	#cd = es.rescale( cd )
 
 	# ciphertext multiplication and rescaling
 	cc = es.ct_mult( ca, cb )
 	cc = es.rescale( cc )
 
-	#cc = es.ct_mult( cc, cd )
-	#cc = es.rescale( cc )
+	cc = es.ct_mult( cc, cc )
+	cc = es.rescale( cc )
+
+	cc = es.ct_mult( cc, cc )
+	cc = es.rescale( cc )
+
+	cc = es.ct_mult( cc, cc )
+	cc = es.rescale( cc )
 
 	# decryption
 	mc = es.decrypt( cc )
@@ -108,7 +112,7 @@ def test_ct_mult():
 
 	print(f'za: {za}')
 	print(f'zb: {zb}')
-	#print(f'zd: {zd}')
+	# print(f'zd: {zd}')
 	print(f'za * zb = zc')
 	print(f'zc: {zc}')
 	print(' ')

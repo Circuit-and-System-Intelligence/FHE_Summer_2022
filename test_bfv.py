@@ -1,4 +1,4 @@
-from lpres import LPR
+from bfv import LPR
 from poly import Poly
 import numpy as np
 import sys
@@ -8,10 +8,10 @@ def main():
 	func = test_multiplication
 	#small_q()
 	#large_q()
-	generate_data()
+	#generate_data()
 	#test_addition()
 	#test_multiplication()
-	#testing_many_multiplication()
+	testing_many_multiplication()
 	return
 
 def demo():
@@ -120,70 +120,26 @@ def test_multiplication():
 	print( lpr.opcount )
 	return 1 if (answer == (x*y)) else 0
 
-def test_base_change():
-	# this function will test the base changing 
-	# function in the lpr() class
-
-	# will first test this with the base as 10
-	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(T=10)
-
-	print(f'Public Key[0]:',end='\t')
-	lpr.pk[0].polyprint()
-
-	base = lpr.poly_base_change(lpr.pk[0],lpr.q,lpr.T)
-
-	print(f'New polynomials for base change')
-	for p in base:
-		p.polyprint()
-
-	# recreate the original polynomial using the 
-	# power of the different base change
-
-	new = Poly()
-
-	for ind,p in enumerate(base):
-		cpy = p.copy()
-		for jnd,c in enumerate(cpy):
-			cpy[jnd] = c * (lpr.T ** ind)
-
-		new = new + cpy
-
-	print(f'Recovered:', end='\t')
-	#new = lpr.mod(new)
-	new.polyprint()
-
-	print(f'{new == lpr.pk[0]}')
-	#print(f'q = {lpr.q}')
-	return
-
 def testing_many_multiplication():
 
 	# q= 2**15, t= 2**8, n=2**4
 	# lpr = LPR(t=2,n=2**4,q=2**31)
-	lpr = LPR(t=2,q=2**18,n=2**5,T=4,std=1.2)
+	lpr = LPR(t=2,q=2**65,n=2**5,T=4,std=3.4)
 
 	a = 1
 	b = 0
 
 	cta = lpr.encrypt(a)
-	ctb = lpr.encrypt(b)
-
-	ctc = lpr.ctmult(cta,ctb)
-
-	c = lpr.decrypt(ctc)
 
 	print(f'a: {a}')
-	print(f'b: {b}')
-	print(f'c: {c}')
+	print(' ')
 
-	return
-
-	for i in range(b):
-		ctbase = lpr.ctmult(ctbase,cta)
-		ans = lpr.decrypt(ctbase)
-		print(ans)
+	for i in range(10):
+		cta = lpr.ctmult(cta,cta)
+		a = lpr.decrypt(cta)
+		print(f'i({i}) a: {a}')
 		print(' ')
+		
 
 	return
 
@@ -200,131 +156,6 @@ def test_func(n=1000,func=None):
 	print(f'The function ran {n} times')
 	print(f'{count} successes')
 	print(f'{count/n} success rate')
-
-
-def test_lpr_calc():
-
-	lpr = LPR(q=2**8, n = 2 ** 3, t = 2, T = 4)
-
-	# set the keys to presets already
-	lpr.sk = Poly([1,0,1,1,0,0,0,1])
-
-	# testing if pk is generated correctly
-	lpr.gen_pk(test=1)
-
-	assert (lpr.pk[0] == Poly([210,33,97,33,153,141,42,228]))
-	assert (lpr.pk[1] == Poly([71,239,2,243,73,213,85,184]))
-
-	# testing if rlk is generated correctly
-	#lpr.gen_rlk1(test=1)
-	lpr.gen_rlk2()
-
-	assert (lpr.rlk[0][0] == Poly([229,32,80,76,13,63,8,250]))
-	assert (lpr.rlk[1][0] == Poly([210,207,198,84,244,230,10,229]))
-	assert (lpr.rlk[2][0] == Poly([101,87,32,146,42,145,229,182]))
-	assert (lpr.rlk[3][0] == Poly([10,0,194,146,147,73,148,113]))
-	assert (lpr.rlk[3][1] == Poly([212,77,255,165,216,115,221,239]))
-	assert (lpr.rlk[4][0] == Poly([168,14,165,215,236,76,88,214]))
-
-	# testing encryption
-	m0 = 1
-	ct0 = lpr.encrypt(pt=m0,test=0)
-
-	assert (ct0[0] == Poly([218,92,152,210,154,112,15,132]) )
-	assert (ct0[1] == Poly([59,8,100,216,230,240,159,104]) )
-
-	m1 = 1
-	ct1 = lpr.encrypt(pt=m1,test=1)
-
-	assert (ct1[0] == Poly([86,187,214,131,132,35,46,235]) )
-	assert (ct1[1] == Poly([71,108,58,210,15,61,112,130]) )
-
-	# test addition
-
-	ct2 = lpr.ctadd(ct0,ct1)
-	assert (ct2[0] == Poly([48,23,110,85,30,147,61,111]) )
-	assert (ct2[1] == Poly([130,116,158,170,245,45,15,234]) )
-	#madd = lpr.decrypt(ct2)
-	#print(madd)
-
-	# test mult
-
-	ct3 = lpr.ctmult(ct0,ct1,test=1)
-	#assert (ct3[0] == Poly([126,232,169,195,171,35,195,110]) )
-	assert (ct3[0] == Poly([116,236,168,194,182,26,182,113]) )
-	assert (ct3[1] == Poly([162,154,155,6,193,114,61,171]) )
-	mmult = lpr.decrypt(ct3)
-	print(mmult)
-
-	
-	c0 = Poly([142,144,235,21,224,118,152,123])
-	c1 = Poly([40,189,27,73,242,152,98,40])
-	c2 = Poly([22,86,133,29,199,110,199,50])
-
-	check1 = c0 + ( c1 * lpr.sk ) + ( c2 * lpr.sk * lpr.sk )
-	quo,check1 = check1 / lpr.fn
-	check1 = check1 % ( 2 ** 8 )
-
-	check2 = ct3[0] + ( ct3[1] * lpr.sk )
-	quo,check2 = check2 / lpr.fn
-	check2 = check2 % ( 2 ** 8 )
-
-	check1.polyprint()
-	check2.polyprint()
-
-	return
-
-
-def test_manual_decrypt():
-
-	sk = Poly([1,0,1,1,0,0,0,1])
-	t = 2
-	q = 256
-	ct0 = ( Poly([218, 92, 152, 210, 154, 112, 15, 132]), Poly([59, 8, 100, 216, 230, 240, 159, 104]) )
-	ct1 = ( Poly([86,187,214,131,132,35,46,235]), Poly([71,108,58,210,15,61,112,130]) )
-	fn = Poly([1,0,0,0,0,0,0,0,1])
-
-	c0 = ct0[0] * ct1[0]
-	quo,c0 = c0 / fn
-	c0 = c0 * ( t / q )
-	c0.round()
-	c0 = c0 % q
-
-	c1 = (ct0[0] * ct1[1]) + (ct0[1] * ct1[0])
-	quo,c1 = c1 / fn
-	c1 = c1 * ( t/q )
-	c1.round()
-	c1 = c1 % q
-
-	c2 = ct0[1] * ct1[1]
-	quo,c2 = c2 / fn
-	c2 = c2 * ( t / q )
-	c2.round()
-	c2 = c2 % q
-
-	c0.polyprint()
-	c1.polyprint()
-	c2.polyprint()
-	print(' ')
-
-
-	dec = (c0) + (c1 * sk) + (c2 * sk * sk)
-	dec.polyprint()
-	print(' ')
-	quo,dec = dec / fn
-	dec.polyprint()
-	print(' ')
-	dec = dec % 256
-	dec.polyprint()
-	print(' ')
-	dec = dec / 128
-	dec.polyprint()
-	print(' ')
-	dec.round()
-	dec.polyprint()
-	print(' ')
-
-	return
 
 def	demo_counter():
 	# this function will act as the test of adding two cipher texts
@@ -475,12 +306,12 @@ def small_q():
 def large_q():
 	# this function will act as the test of multiplying two cipher texts
 	print('LARGE Q MULT')
-	print('large q = 2**20')
-	print('large n = 2**3')
+	print('large q = 2**256')
+	print('large n = 2**10')
 
 	# q= 2**15, t= 2**8, n=2**4
 	#lpr = LPR()
-	lpr = LPR(t=2,q=2**20,n=2**3,T=4,std=2.0)
+	lpr = LPR(t=2,q=2**256,n=2**10,std=2.0)
 
 	# generate the two random numbers
 	#x = 1
@@ -506,28 +337,32 @@ def large_q():
 def generate_data():
 	# this function will generate the data for increasing q and increasing d for rings (x^d + 1)
 
-	with open("data/bfv_upperQbound.txt","w") as f:
-		f.write(f'q,d,enc_add,enc_mul,dec_add,dec_mul,key_add,key_mul\n')
-		# f.write(f'n,q,ctmult\n')
-		for d in range(11,17):
-			for q in range(25,26,2):
+	with open("data/bfv_std.csv","w") as f:
+		# f.write(f'q,d,enc_add,enc_mul,dec_add,dec_mul,key_add,key_mul\n')
+		f.write(f'n,q,enc\n')
+		for d in range(10,11):
+			for q in range(16,257,16):
 				print(f'q={q} d={d}')
 				lpr = LPR(t=2,q=2**q,n=2**d,std=2.0)
 				skip = False
-				for n in range(1):
+				for n in range(100):
 					x = np.random.randint(0,2)
 					# y = np.random.randint(0,2)
 					ctx = lpr.encrypt(x)
 					# cty = lpr.encrypt(y)
 					# ctz = lpr.ctmult(ctx,cty)
 					z = lpr.decrypt(ctx)
-					'''
 					if (z != x):
 						f.write(f'{d},{q},False\n')
 						skip = True
 						break
-					'''
 					#assert z == x
+
+				if skip:
+					continue
+
+				f.write(f'{d},{q},True\n')
+				continue
 				enc_add = lpr.counters['enc'].add
 				enc_mul = lpr.counters['enc'].mul
 				enc_mod = lpr.counters['enc'].mod
@@ -547,6 +382,7 @@ def generate_data():
 				# print(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul}')
 				# f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul},{add_add},{add_mul}\n')
 				f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul}\n')
+
 
 
 if __name__ == '__main__':

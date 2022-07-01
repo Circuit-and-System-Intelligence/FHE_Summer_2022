@@ -52,8 +52,8 @@ class OperationsCounter():
 	# count a simple modulus between two
 	# numbers, e.g. float or int
 	def num_mod(self, x, y):
-		return self.naive_modulus_count(x,y)
-		#return self.barrett_count(x,y)
+		#return self.naive_modulus_count(x,y)
+		return self.barrett_count(x,y)
 		'''
 		self.mod += 1
 		return x % y
@@ -77,14 +77,14 @@ class OperationsCounter():
 	# count operations of dividing number to polynomial
 	def poly_div_num(self, p, c):
 		self.div += len( p )
-		return p / c
+		return p // c
 
 	# count operations of modding number to polynomial
 	def poly_mod(self, p, c):
 		cpy = p.copy()
 		for ind, i in enumerate(cpy):
-			#cpy[ind] = self.barrett_count(i,c)
-			cpy[ind] = self.naive_modulus_count(i,c)
+			cpy[ind] = self.barrett_count(i,c)
+			#cpy[ind] = self.naive_modulus_count(i,c)
 		return cpy
 		'''
 		self.mod += len( p )
@@ -127,7 +127,7 @@ class OperationsCounter():
 		self.mul += ( dif * sz1 )
 		self.add += ( dif * sz1 )
 
-		return p0 / p1
+		return p0 // p1
 
 	# implement a mod function with addition and comparison
 	def naive_modulus_count(self, x, y):
@@ -137,7 +137,7 @@ class OperationsCounter():
 		self.mod += 1
 		# if there was a cmp counter, it would be 1 + x//y
 		# self.comp += 1 + (x // y) 
-		return barrett(x,y) 
+		# return barrett(x,y) 
 		return naive_modulus(x,y)
 
 	def barrett_count(self, x, y):
