@@ -49,11 +49,14 @@ def barrett(a, n):
 
 	# calculate k and q for reduction
 	# k = nextpow2(n)
+	k = 1 if n == 0 else (n-1).bit_length()
+	'''
 	k = 0
 	mask = 1
 	while mask < abs(n):
 		mask = mask << 1
 		k += 1
+	'''
 	
 	two_k = k << 1
 	# q = floor(bitshift(1,2*k)/n)
@@ -105,14 +108,16 @@ class Montgomery():
 
 	def toMont(self, a):
 		# this function will convert into the Montgomery system
+		return barrett( (a*self.r), self.n )
 		return (a*self.r) % self.n
 
 	def fromMont(self, a):
 		# this function will convert out of the Montgomery system
+		return barrett( (a*self.invr), self.n )
 		return ( a * self.invr ) % self.n
 
 	def multiplication(self, a, b):
-		# this will perform multiplication on too
+		# this will perform multiplication on two
 		# numbers already in the Montgomery system
 		# and return a number in the system
 		x = a*b
@@ -131,10 +136,10 @@ class Montgomery():
 def test_mont():
 	# this function will test the montgomery system
 
-	mont = Montgomery(n=7,powr=4)
+	mont = Montgomery(n=63,powr=6)
 
-	a = mont.toMont( 4 )
-	b = mont.toMont( 3 )
+	a = mont.toMont( 1234 )
+	b = mont.toMont( 56 )
 
 	c = mont.multiplication( a, b )
 

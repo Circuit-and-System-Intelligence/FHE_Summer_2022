@@ -1,40 +1,17 @@
 #!/usr/bin/env python
-# this program will be an attempt to create the bfv
+# this program will be an attempt to create the BFV
 # encrption scheme that is described in the BFV paper.
+#
+# this will implement Montgomery reduction to decrease 
+# operations within modulus space
 
 import numpy as np
-from numpy.polynomial import polynomial as p
 import random
-import sys
 
-from counter import OperationsCounter
+from naive_modulus import Montgomery
 from poly import Poly
-from bitint import Bitint
 
-def main():
-	# this main function is using the lpr() class
-	# encryption scheme
-
-	# create an encryption scheme instance
-	lpr = LPR()
-
-	# create plaintext you want to encrypt
-	pt = 5
-
-	# encrypt plaintext into ciphertext
-	ct = lpr.encrypt(pt)
-
-	# decrypt back into plaintext
-	recovered_pt = lpr.decrypt(ct)
-
-	# print results
-	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
-	print(f'{pt==recovered_pt}')
-	print( lpr.opcount )
-
-	return
-
-class LPR():
+class Mont_BFV():
 
 	def __init__(self,q=2**15,t=2**8,n=2**4,std=2,fn=None,h=64,security=128,bitwidth=32):
 		"""
@@ -98,10 +75,6 @@ class LPR():
 		# set hamming weight of secret key
 		sk = [1]*self.h
 		sk = sk + [0]*(self.n-self.h)
-		'''
-		sk = [Bitint(1,32)]*self.h
-		sk = sk + [Bitint(0,32)]*(self.n-self.h)
-		'''
 		np.random.shuffle( sk )
 		self.sk = Poly( sk )
 	
@@ -570,5 +543,5 @@ class LPR():
 		print( self.counters['relin'] )
 		
 if __name__ == '__main__':
-	main()
 	pass
+

@@ -67,7 +67,7 @@ def test():
 def test_ct_mult():
 	print('Testing ct_mult')
 
-	es = CKKS(M=2**15, delta=2**30, q0=2**140, h=64, L=5)
+	es = CKKS(M=2**8, delta=2**20, q0=2**40, h=64, L=5)
 
 	za = [ 1 + 2j, 3 - 4j ]
 	zb = [ 1.5 + 0j, 0 + 1j ]
