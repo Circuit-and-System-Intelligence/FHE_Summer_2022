@@ -6,12 +6,13 @@ import pickle
 
 def main():
 	func = test_multiplication
+	main_test()
 	#small_q()
 	#large_q()
 	#generate_data()
 	#test_addition()
 	#test_multiplication()
-	testing_many_multiplication()
+	#testing_many_multiplication()
 	return
 
 def demo():
@@ -43,7 +44,7 @@ def main_test():
 	# encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(q=2**215,T=4,t=2,n=2**10)
+	lpr = LPR(q=2**22,t=2,n=2**7,bitwidth=32)
 
 	# generate a plaintext
 	#pt = 5
@@ -69,7 +70,7 @@ def test_addition():
 
 	# q= 2**15, t= 2**8, n=2**4
 	#lpr = LPR()
-	lpr = LPR(t=2,q=2**128,n=2**10,T=4,std=3.8)
+	lpr = LPR(t=2,q=2**128,n=2**10,std=3.8)
 
 	# generate the two random numbers
 	#x = 1
@@ -95,7 +96,7 @@ def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
 	# q= 2**30, t= 2**1, n=2**10
-	lpr = LPR(t=2,q=2**60,n=2**11,T=4,std=2.0)
+	lpr = LPR(t=2,q=2**60,n=2**11,std=2.0)
 
 	# generate the two random numbers between [0,1]
 	#x = 0
@@ -124,7 +125,7 @@ def testing_many_multiplication():
 
 	# q= 2**15, t= 2**8, n=2**4
 	# lpr = LPR(t=2,n=2**4,q=2**31)
-	lpr = LPR(t=2,q=2**65,n=2**5,T=4,std=3.4)
+	lpr = LPR(t=2,q=2**65,n=2**5,h=2**4,std=3.4)
 
 	a = 1
 	b = 0
@@ -163,7 +164,7 @@ def	demo_counter():
 
 	# q= 2**15, t= 2**8, n=2**4
 	#lpr = LPR()
-	lpr = LPR(t=2,q=2**38,n=2**4,T=4,std=3.8)
+	lpr = LPR(t=2,q=2**38,n=2**4,std=3.8)
 
 	# generate the two random numbers
 	#x = 1
@@ -191,7 +192,7 @@ def	demo_counter():
 
 	# q= 2**15, t= 2**8, n=2**4
 	#lpr = LPR()
-	lpr = LPR(t=2,q=2**38,n=2**10,T=4,std=3.8)
+	lpr = LPR(t=2,q=2**38,n=2**10,std=3.8)
 
 	# generate the two random numbers
 	#x = 1
@@ -218,7 +219,7 @@ def	demo_counter():
 
 	# q= 2**15, t= 2**8, n=2**4
 	#lpr = LPR()
-	lpr = LPR(t=2,q=2**38,n=2**4,T=4,std=3.8)
+	lpr = LPR(t=2,q=2**38,n=2**4,std=3.8)
 
 	# generate the two random numbers
 	#x = 1
@@ -248,7 +249,7 @@ def	demo_counter():
 
 	# q= 2**15, t= 2**8, n=2**4
 	#lpr = LPR()
-	lpr = LPR(t=2,q=2**30,n=2**10,T=4,std=2.0)
+	lpr = LPR(t=2,q=2**30,n=2**10,std=2.0)
 
 	# generate the two random numbers
 	#x = 1
@@ -280,7 +281,7 @@ def small_q():
 
 	# q= 2**15, t= 2**8, n=2**4
 	#lpr = LPR()
-	lpr = LPR(t=2,q=2**15,n=2**3,T=4,std=2.0)
+	lpr = LPR(t=2,q=2**15,n=2**3,std=2.0)
 
 	# generate the two random numbers
 	#x = 1
