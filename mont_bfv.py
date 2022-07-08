@@ -9,6 +9,7 @@ import numpy as np
 import random
 
 from naive_modulus import Montgomery
+from counter import OperationsCounter
 from poly import Poly
 
 class Mont_BFV():
@@ -30,6 +31,8 @@ class Mont_BFV():
 		pk 	- public key for encrypting messages
 		rlk - relinearization key for reducing ciphertext size after multiplication 
 		"""
+
+		self.mont = Montgomery( q-1, q.bit_length() )
 
 		self.q = q
 		self.t = t
@@ -62,7 +65,7 @@ class Mont_BFV():
 		"""
 		self.gen_sk()
 		self.gen_pk()
-		self.gen_rlk()
+		#self.gen_rlk()
 		
 	def gen_sk(self):
 		"""
@@ -77,6 +80,9 @@ class Mont_BFV():
 		sk = sk + [0]*(self.n-self.h)
 		np.random.shuffle( sk )
 		self.sk = Poly( sk )
+
+		for ind, n in enumerate(self.sk):
+			self.sk[ind] = self.mont.toMont( n )
 	
 		return
 
@@ -231,16 +237,19 @@ class Mont_BFV():
 		# set encryption counter object 
 		oc = self.counters['enc']
 
-		m = [pt]
+		m = [self.mont.toMont(pt)]
 		m = Poly(m)
 		m = oc.poly_mod( m, self.q ) #m = m % self.q
 		#print( m )
 
 		delta = oc.floor_div(self.q, self.t) #delta = self.q // self.t
+		delta = self.mont.toMont( delta )
 		scaled_m = m.copy()
 		#scaled_m[0] = delta * scaled_m[0] % self.q
-		scaled_m = oc.poly_mul_num( scaled_m, delta ) #scaled_m = (scaled_m * delta) 
-		scaled_m = oc.poly_mod( scaled_m, self.q ) #scaled_m = scaled_m  % self.q
+		for ind, i in enumerate(scaled_m):
+			scaled_m[ind] = self.mont.multiplication( i, delta )
+		#scaled_m = oc.poly_mul_num( scaled_m, delta ) #scaled_m = (scaled_m * delta) 
+		#scaled_m = oc.poly_mod( scaled_m, self.q ) #scaled_m = scaled_m  % self.q
 		# create a new m, which is scaled my q//t % q
 		# generated new error polynomials
 		e1 = self.gen_normal_poly()
@@ -274,18 +283,19 @@ class Mont_BFV():
 		# set decryption counter object
 		oc = self.counters['dec']
 
-		# scaled_pt = ct[1]*sk + ct[0]
-		#scaled_pt = self.polyadd( self.polymult( ct[1], self.sk ), ct[0] )
-		scaled_pt = self.polyadd( oc.poly_mul_poly( ct[1] , self.sk ), ct[0], oc )
+		scaled_pt = self.polyadd( self.polymult( ct[1] , self.sk, oc ), ct[0], oc )
+		#print( scaled_pt )
+		for ind, i in enumerate(scaled_pt):
+			scaled_pt[ind] = self.mont.fromMont( i )
 
 		tq = oc.true_div( self.t, self.q )
-		scaled_pt = oc.poly_mul_num( scaled_pt, tq ) #scaled_pt = scaled_pt * ( self.t / self.q)
+
+		scaled_pt = scaled_pt * tq
+
 		scaled_pt.round()
 		scaled_pt = oc.poly_mod( scaled_pt, self.t ) #scaled_pt = scaled_pt % self.t
-		# print( scaled_pt )
+		#print( scaled_pt )
 		decrypted_pt = scaled_pt
-
-		#decrypted_pt.polyprint()
 
 		# return the first term of the polynomial, which is the plaintext
 		return int(decrypted_pt[0])
@@ -459,11 +469,12 @@ class Mont_BFV():
 		"""
 		if ( oc == None ):
 			oc = self.opcount
+
 		z = oc.poly_add_poly( x, y ) #z = x + y
 		quo,rem = oc.poly_div_poly( z, self.fn ) #quo,rem = (z / self.fn)
 		z = rem
 
-		z = oc.poly_mod( z, self.q ) #z = z % self.q
+		# z = oc.poly_mod( z, self.q ) #z = z % self.q
 		#z = self.mod(z)
 		return z
 
@@ -475,11 +486,18 @@ class Mont_BFV():
 		if ( oc == None ):
 			oc = self.opcount
 
-		z = oc.poly_mul_poly( x, y ) #z = x * y
+		# z = oc.poly_mul_poly( x, y ) #z = x * y
+
+		z = Poly( [0]*(len(x)+len(y)) )
+
+		for ind, i in enumerate(x):
+			for jnd, j in enumerate(y):
+				z[ind+jnd] += self.mont.multiplication( i, j )
+
 		quo, rem = oc.poly_div_poly( z, self.fn ) #quo, rem = (z / self.fn)
 		z = rem
 
-		z = oc.poly_mod( z, self.q ) #z = z % self.q
+		# z = oc.poly_mod( z, self.q ) #z = z % self.q
 		#z = self.mod(z)
 		return z
 
@@ -494,7 +512,7 @@ class Mont_BFV():
 			std = self.std
 		a = []
 		for i in range(self.n):
-			a.append( int(np.random.normal(c,std)) )
+			a.append( self.mont.toMont( int(np.random.normal(c,std)) ) )
 		a = Poly(a)
 		return a
 
@@ -505,7 +523,7 @@ class Mont_BFV():
 		"""
 		a = []
 		for i in range(self.n):
-			a.append( np.random.randint(0,2) )
+			a.append( self.mont.toMont( np.random.randint(0,2) ) )
 		a = Poly(a)
 		return a
 
@@ -518,7 +536,7 @@ class Mont_BFV():
 			q = self.q
 		a = []
 		for i in range(self.n):
-			a.append( random.randint(0,q) )
+			a.append( self.mont.toMont( random.randint(0,q) ) )
 		a = Poly(a)
 
 		return a

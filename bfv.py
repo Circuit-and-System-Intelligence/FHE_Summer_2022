@@ -7,7 +7,10 @@ from numpy.polynomial import polynomial as p
 import random
 import sys
 
+import pdb
+
 from counter import OperationsCounter
+#from counter import PolyCount as Poly
 from poly import Poly
 from bitint import Bitint
 
@@ -116,7 +119,7 @@ class LPR():
 		e <- Normal Distribution with (mean = 0, standard deviation = self.std)
 
 		----- Calculation ----- 
-		b = -(a*sk + e)
+		a = -(a*sk + e)
 
 		----- Result -----
 		pk = (b , a)
@@ -136,11 +139,14 @@ class LPR():
 		e = self.gen_normal_poly()
 
 		# create a new polynomial _a which is -a
-		_a = oc.poly_mul_num(a, -1) #_a = a * -1
+		_a = oc.poly_mul_num(a, -1) 
+		#_a = a * -1
 
 		# then set e = -e
-		e = oc.poly_mul_num(e, -1) #e = e * -1
+		e = oc.poly_mul_num(e, -1) 
+		#e = e * -1
 
+		# breakpoint()
 		# create b from (-a * sk) - e
 		b = self.polyadd( self.polymult(_a, self.sk, oc),e, oc)
 
@@ -192,21 +198,30 @@ class LPR():
 		a = self.gen_uniform_poly(q=self.q*self.p)
 
 		# p * (sk^2)
-		ss = oc.poly_mul_poly(self.sk,self.sk) #ss = self.sk * self.sk
-		quo,ss = oc.poly_div_poly(ss, self.fn) #quo,ss = ss / self.fn
-		ss = oc.poly_mul_num( ss, self.p ) #ss = ss * self.p
+		ss = oc.poly_mul_poly(self.sk,self.sk) 
+		#ss = self.sk * self.sk
+		quo,ss = oc.poly_div_poly(ss, self.fn) 
+		#quo,ss = ss / self.fn
+		ss = oc.poly_mul_num( ss, self.p ) 
+		#ss = ss * self.p
 
 		# -(a*s + e)
-		b = oc.poly_mul_poly(a,self.sk) #b = a * self.sk
-		quo,b = oc.poly_div_poly(b, self.fn) #quo,b = b / self.fn
-		b = oc.poly_add_poly( b, e ) #b = b + e
-		b = oc.poly_mul_num( b, -1 ) #b = b * -1
+		b = oc.poly_mul_poly(a,self.sk) 
+		#b = a * self.sk
+		quo,b = oc.poly_div_poly(b, self.fn) 
+		#quo,b = b / self.fn
+		b = oc.poly_add_poly( b, e ) 
+		#b = b + e
+		b = oc.poly_mul_num( b, -1 ) 
+		#b = b * -1
 
 		# -(a*s + e) + p*sk^2
-		b = oc.poly_add_poly( ss, b ) #b = ss + b
+		b = oc.poly_add_poly( ss, b ) 
+		#b = ss + b
 
 		qp = oc.num_mul(self.q, self.p)
-		b = oc.poly_mod( b, qp ) #b = b % (self.q * self.p)
+		b = oc.poly_mod( b, qp ) 
+		#b = b % (self.q * self.p)
 
 		self.rlk = (b, a)
 		return 
@@ -259,26 +274,48 @@ class LPR():
 		oc = self.counters['enc']
 
 		m = [pt]
+		# m = Poly(m)
 		m = Poly(m)
 		m = oc.poly_mod( m, self.q ) #m = m % self.q
 		#print( m )
 
-		delta = oc.floor_div(self.q, self.t) #delta = self.q // self.t
+		delta = oc.floor_div(self.q, self.t) 
+		#delta = self.q // self.t
 		scaled_m = m.copy()
 		#scaled_m[0] = delta * scaled_m[0] % self.q
-		scaled_m = oc.poly_mul_num( scaled_m, delta ) #scaled_m = (scaled_m * delta) 
-		scaled_m = oc.poly_mod( scaled_m, self.q ) #scaled_m = scaled_m  % self.q
+		scaled_m = oc.poly_mul_num( scaled_m, delta ) 
+		#scaled_m = (scaled_m * delta) 
+		scaled_m = oc.poly_mod( scaled_m, self.q ) 
+		#scaled_m = scaled_m  % self.q
 		# create a new m, which is scaled my q//t % q
 		# generated new error polynomials
 		e1 = self.gen_normal_poly()
 		e2 = self.gen_normal_poly()
 		u = self.gen_binary_poly()
 
+		'''
+		# set counters for each polynomial
+		e1.oc = oc
+		e2.oc = oc
+		u.oc = oc
+		self.pk[0].oc = oc
+		self.pk[1].oc = oc
+		'''
+
 		# create c0 = pk[0]*u + e1 + scaled_m
 		ct0 = self.polyadd( self.polyadd( self.polymult( self.pk[0], u, oc), e1, oc), scaled_m, oc)
+		# ct0 = self.polyadd( self.polyadd( self.polymult( self.pk[0], u), e1), scaled_m)
+		'''
+		ct0 = self.pk[0] * u
+		ct0 = ct0 + e1
+		ct0 = ct0 + scaled_m
+		quo,ct0 = ct0 // self.fn
+		ct0 = ct0 % self.q
+		'''
 
 		# create c1 = pk[1]*u + e2
 		ct1 = self.polyadd( self.polymult( self.pk[1], u, oc), e2, oc)
+		#ct1 = self.polyadd( self.polymult( self.pk[1], u), e2)
 
 		return (ct0, ct1)
 
@@ -300,19 +337,26 @@ class LPR():
 
 		# set decryption counter object
 		oc = self.counters['dec']
+		'''
+		ct[0].oc = oc
+		ct[1].oc = oc
+		self.sk.oc = oc
+		'''
 
 		# scaled_pt = ct[1]*sk + ct[0]
 		#scaled_pt = self.polyadd( self.polymult( ct[1], self.sk ), ct[0] )
 		scaled_pt = self.polyadd( oc.poly_mul_poly( ct[1] , self.sk ), ct[0], oc )
 
 		tq = oc.true_div( self.t, self.q )
-		scaled_pt = oc.poly_mul_num( scaled_pt, tq ) #scaled_pt = scaled_pt * ( self.t / self.q)
+		scaled_pt = oc.poly_mul_num( scaled_pt, tq ) 
+		# scaled_pt = scaled_pt * ( self.t / self.q)
+		# scaled_pt = scaled_pt * self.t
+		# scaled_pt = scaled_pt // self.q
 		scaled_pt.round()
-		scaled_pt = oc.poly_mod( scaled_pt, self.t ) #scaled_pt = scaled_pt % self.t
+		scaled_pt = oc.poly_mod( scaled_pt, self.t ) 
+		# scaled_pt = scaled_pt % self.t
 		# print( scaled_pt )
 		decrypted_pt = scaled_pt
-
-		#decrypted_pt.polyprint()
 
 		# return the first term of the polynomial, which is the plaintext
 		return int(decrypted_pt[0])
@@ -486,12 +530,15 @@ class LPR():
 		"""
 		if ( oc == None ):
 			oc = self.opcount
-		z = oc.poly_add_poly( x, y ) #z = x + y
-		quo,rem = oc.poly_div_poly( z, self.fn ) #quo,rem = (z / self.fn)
+		z = oc.poly_add_poly( x, y ) 
+		#z = x + y
+		quo,rem = oc.poly_div_poly( z, self.fn ) 
+		#quo,rem = (z // self.fn)
 		z = rem
 
-		z = oc.poly_mod( z, self.q ) #z = z % self.q
-		#z = self.mod(z)
+		z = oc.poly_mod( z, self.q ) 
+		#z = z % self.q
+
 		return z
 
 	def polymult(self, x, y, oc=None):
@@ -502,11 +549,14 @@ class LPR():
 		if ( oc == None ):
 			oc = self.opcount
 
-		z = oc.poly_mul_poly( x, y ) #z = x * y
-		quo, rem = oc.poly_div_poly( z, self.fn ) #quo, rem = (z / self.fn)
+		z = oc.poly_mul_poly( x, y ) 
+		#z = x * y
+		quo, rem = oc.poly_div_poly( z, self.fn ) 
+		#quo, rem = (z // self.fn)
 		z = rem
 
-		z = oc.poly_mod( z, self.q ) #z = z % self.q
+		z = oc.poly_mod( z, self.q ) 
+		#z = z % self.q
 		#z = self.mod(z)
 		return z
 

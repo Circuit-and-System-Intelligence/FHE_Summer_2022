@@ -28,7 +28,7 @@ class OperationsCounter():
 	# numbers, e.g. float or int
 	def num_add(self, x, y):
 		# self.add += 1
-		self.add += ( (x+y).bit_length() // self.bitwidth ) + 1
+		self.add += self.bitrep(x+y)
 		self.append_addbits(x+y)
 		return x + y
 
@@ -36,7 +36,7 @@ class OperationsCounter():
 	# numbers, e.g. float or int
 	def num_sub(self, x, y):
 		# self.add += 1
-		self.add += ( (x-y).bit_length() // self.bitwidth ) + 1
+		self.add += self.bitrep(x-y)
 		self.append_addbits(x-y)
 		return x - y
 
@@ -44,7 +44,7 @@ class OperationsCounter():
 	# numbers, e.g. float or int
 	def num_mul(self, x, y):
 		# self.mul += 1
-		self.mul += ( (x*y).bit_length() // self.bitwidth ) + 1
+		self.mul += self.bitrep(x*y)
 		self.append_mulbits(x*y)
 		return x * y
 
@@ -58,7 +58,7 @@ class OperationsCounter():
 	# numbers, e.g. float or int
 	def floor_div(self, x, y):
 		# self.div += 1
-		self.div += ( (x//y).bit_length() // self.bitwidth ) + 1
+		self.div += self.bitrep(x//y)
 		self.append_divbits(x//y)
 		return x // y
 
@@ -77,7 +77,7 @@ class OperationsCounter():
 		# self.add += len( p )
 		ret = p + c
 		for r in ret:
-			self.add += ( (r).bit_length() // self.bitwidth ) + 1
+			self.add += self.bitrep(r)
 			self.append_addbits( r )
 		return p + c
 
@@ -86,7 +86,7 @@ class OperationsCounter():
 		# self.add += len( p )
 		ret = p - c
 		for r in ret:
-			self.add += ( (r).bit_length() // self.bitwidth ) + 1
+			self.add += self.bitrep(r)
 			self.append_addbits( r )
 		return p - c
 
@@ -95,7 +95,7 @@ class OperationsCounter():
 		# self.mul += len( p )
 		ret = p * c
 		for r in ret:
-			self.mul += ( (int(r)).bit_length() // self.bitwidth ) + 1
+			self.mul += self.bitrep(int(r))
 			self.append_mulbits( int(r) )
 		return p * c
 
@@ -104,7 +104,7 @@ class OperationsCounter():
 		self.div += len( p )
 		ret = p // c
 		for r in ret:
-			self.div += ( (r).bit_length() // self.bitwidth ) + 1
+			self.div += self.bitrep(r)
 			self.append_divbits( int(r) )
 		return p // c
 
@@ -127,7 +127,7 @@ class OperationsCounter():
 		# self.add += l
 		ret = p0 + p1
 		for r in ret:
-			self.add += ( (r).bit_length() // self.bitwidth ) + 1
+			self.add += self.bitrep(r)
 			self.append_addbits( r )
 		return p0 + p1
 
@@ -138,7 +138,7 @@ class OperationsCounter():
 		# self.add += l
 		ret = p0 - p1
 		for r in ret:
-			self.add += ( (r).bit_length() // self.bitwidth ) + 1
+			self.add += self.bitrep(r)
 			self.append_addbits( r )
 		return p0 - p1
 
@@ -153,8 +153,8 @@ class OperationsCounter():
 
 		ret = p0 * p1
 		for r in ret:
-			self.add += ( (r).bit_length() // self.bitwidth ) + 1
-			self.mul += ( (r).bit_length() // self.bitwidth ) + 1
+			self.add += self.bitrep(r) #( (r).bit_length() // self.bitwidth ) + 1
+			self.mul += self.bitrep(r) #( (r).bit_length() // self.bitwidth ) + 1
 			self.append_mulbits( int(r) )
 
 		return p0 * p1
@@ -182,11 +182,11 @@ class OperationsCounter():
 	def naive_modulus_count(self, x, y):
 		# the naive_modulus would loop for x//y times, which
 		# will include one addition operation for each loop
-		self.add += int(abs( x // y ))
+		self.add += int(abs( x // y )) * ( 1 + ( x.bit_length() // self.bitwidth) )
 		self.mod += 1
 		# if there was a cmp counter, it would be 1 + x//y
 		# self.comp += 1 + (x // y) 
-		# return barrett(x,y) 
+		return barrett(x,y) 
 		return naive_modulus(x,y)
 
 	def barrett_count(self, x, y):
@@ -194,11 +194,38 @@ class OperationsCounter():
 		# barrett modulus reductions
 		# self.mul += 2
 		# self.add += 2
-		self.mul += 2 * ( ( (x*y).bit_length() // self.bitwidth) + 1 )
-		self.add += 2 * ( ( (x+y).bit_length() // self.bitwidth) + 1 )
+		self.mul += 2 * self.bitrep(x+y)
+		self.add += 2 * self.bitrep(x+y)
 		self.mod += 1
 		return barrett(x,y) 
 
+	def toMont(self, mont, a):
+		# this will count the operations for converting
+		# into montgomery system
+		self.mul += self.bitrep(a*mont.r)
+		self.mul += 2 * self.bitrep(a*mont.n)
+		self.add += 2 * self.bitrep(a+mont.n)
+		self.mod += 1
+		return mont.toMont( a )
+
+	def montMultiplication(self, mont, a, b):
+		# this will count operations for multiplying in 
+		# montgomery system
+		self.mul += ((a*b).bit_length() // self.bitwidth) + 1
+		self.mul += ((a*b*mont.k).bit_length() // self.bitwidth) + 1
+		self.mul += ((a*b*mont.k*mont.n).bit_length() // self.bitwidth) + 1
+		self.add += ((x+a*b*mont.k*mont.n).bit_length() // self.bitwidth) + 1
+		self.add += ((mont.n).bit_length() // self.bitwidth) + 1
+		return mont.multiplication(a, b)
+
+	def fromMont(self, mont, a):
+		# this will convert number from Montogmery 
+		# back to normal system
+		self.mul += ((a*mont.invr).bit_length() // self.bitwidth) + 1
+		self.add += int(abs( a // mont.n )) * ( 1 + ( a.bit_length() // self.bitwidth) )
+		self.mod += 1
+		return mont.fromMont( a )
+		
 	def append_addbits(self, num):
 		# this function will add the bitlength
 		# of num to the addbits dict
@@ -239,6 +266,9 @@ class OperationsCounter():
 			self.modbits[bit] += 1
 		return
 
+	def bitrep(self, num):
+		return 1 + ( num.bit_length() // self.bitwidth )
+
 	# generate string to print information about current count
 	def __str__(self):
 		addstr = f'Add: {self.add}'
@@ -255,6 +285,205 @@ class OperationsCounter():
 		# output += f'\n{divstr}'
 		# output += f'\n{addbits}\n{mulbits}\n{modbits}'
 		return output
+
+class PolyCount(Poly):
+
+	def __init__(self,poly=None,oc=None):
+		if type(poly) != Poly:
+			super().__init__(poly)
+		else:
+			self.poly = poly
+		self.oc = oc
+		if self.oc == None:
+			self.oc = OperationsCounter()
+
+	def __add__(self,other):
+		ret = super().__add__(other)
+
+		# loop through the return polynomial and 
+		# add the necessary additions required for 
+		# each integer
+		for i in ret:
+			self.oc.add += self.oc.bitrep(i)
+
+		return PolyCount( ret, self.oc )
+
+	def __mul__(self,other):
+		ret = super().__mul__(other)
+
+		for i in ret:
+			if type(other) == Poly or type(other) == PolyCount:
+				self.oc.add += self.oc.bitrep(i)
+			self.oc.mul += self.oc.bitrep(i)
+
+		return PolyCount( ret, self.oc )
+
+	def copy(self):
+		ret = super().copy()
+
+		return PolyCount( ret, self.oc )
+
+	def __floordiv__(self,other):
+		if type(other) == int:
+			ret = super().__floordiv__(other)
+			return PolyCount( ret, self.oc )
+
+		quo,rem = super().__floordiv__(other)
+		return ( PolyCount( quo, self.oc ), PolyCount( rem, self.oc ) )
+
+	def __mod__(self,other):
+		ret = super().__mod__(other)
+
+		return PolyCount( ret, self.oc )
+
+class PolyCount1(object):
+
+	def __init__(self,poly=None,oc=None):
+		self.polynomial = Poly( poly )
+		self.oc = oc
+		if self.oc == None:
+			self.oc = OperationsCounter()
+
+	def __getitem__(self, key):
+		return self.polynomial[key]
+
+	def __setitem__(self, key, value):
+		self.polynomial[key] = value
+		return
+
+	def __iter__(self):
+		self.n = 0
+		return self
+
+	def __next__(self):
+		if self.n < len(self.polynomial):
+			ret = self.polynomial[self.n]
+			self.n += 1
+			return ret
+		else:
+			raise StopIteration
+
+	def __add__(self,other):
+		# add two polynomials together
+		if (type(other) != type(self)):
+			ret = self.polynomial + other
+		else:
+			ret = self.polynomial + other.polynomial
+
+		# loop through the return polynomial and 
+		# add the necessary additions required for 
+		# each integer
+		for i in ret:
+			self.oc.add += self.oc.bitrep(i)
+
+		return PolyCount( ret, self.oc )
+
+	def __radd__(self,other):
+
+		ret = self.polynomial + other
+
+		for i in ret:
+			self.oc.add += self.oc.bitrep(i)
+
+		return PolyCount( ret, self.oc )
+
+	def __sub__(self,other):
+		# sub two polynomials together
+		if (type(other) != type(self)):
+			ret = self.polynomial - other
+		else:
+			ret = self.polynomial - other.polynomial
+
+		for i in ret:
+			self.oc.add += self.oc.bitrep(i)
+
+		return PolyCount( ret, self.oc )
+
+	def __mul__(self, other):
+		# mul two polynomials together
+		if (type(other) != type(self)):
+			ret = self.polynomial * other
+		else:
+			ret = self.polynomial * other.polynomial
+
+		for i in ret:
+			if type(other) == Poly or type(other) == PolyCount:
+				self.oc.add += self.oc.bitrep(i)
+			self.oc.mul += self.oc.bitrep(i)
+
+		return PolyCount( ret, self.oc )
+
+	def __rmul__(self, other):
+
+		ret = self.polynomial * other
+
+		if type(other) == Poly or type(other) == PolyCount:
+			for i in ret:
+				self.oc.add += self.oc.bitrep(i)
+				self.oc.mul += self.oc.bitrep(i)
+		else:
+			for i in ret:
+				self.oc.mul += self.oc.bitrep(i)
+
+		return PolyCount( ret, self.oc )
+
+	def __truediv__(self,other):
+		# div two polynomials together
+		if (type(other) != type(self)):
+			ret = self.polynomial / other
+		else:
+			ret = self.polynomial / other.polynomial
+
+		if type(other) == int:
+			self.oc.poly_div_num( self.polynomial, other)
+		elif type(other) == Poly:
+			self.oc.poly_div_poly( self.polynomial, other)
+		elif type(other) == PolyCount:
+			self.oc.poly_div_poly( self.polynomial, other.polynomial)
+
+		return PolyCount( ret, self.oc )
+
+	def __floordiv__(self,other):
+		# div two polynomials together
+		if (type(other) != type(self)):
+			ret = self.polynomial // other
+		else:
+			ret = self.polynomial // other.polynomial
+
+		if type(other) == int:
+			self.oc.poly_div_num( self.polynomial, other)
+		elif type(other) == Poly:
+			self.oc.poly_div_poly( self.polynomial, other)
+		elif type(other) == PolyCount:
+			self.oc.poly_div_poly( self.polynomial, other.polynomial)
+
+		return PolyCount( ret, self.oc )
+
+	def __mod__(self,other):
+		ret = self.polynomial % other
+		self.oc.poly_mod(self.polynomial,other)
+		return PolyCount( ret, self.oc )
+
+	def __len__(self):
+		return len( self.polynomial )
+
+	def __str__(self):
+		return str( self.polynomial )
+
+	def __round__(self):
+		ret = round( self.polynomial )
+		return PolyCount( ret, self.oc )
+
+	def floor(self):
+		ret = self.polynomial.floor()
+		return PolyCount( ret, self.oc )
+
+	def copy(self):
+		ret = self.polynomial.copy()
+		return PolyCount( ret, self.oc )
+
+	def evaluate(self,x):
+		return self.polynomial.evaluate( x )
 
 def main():
 	a = Poly( [ 1, 2, 3] )

@@ -6,6 +6,7 @@
 # fully homomorphic encryption scheme
 
 from poly import Poly
+#from counter import PolyCount as Poly
 from vector import Vector, Matrix, vdot, matmul, linalg
 import numpy as np
 import random
@@ -23,7 +24,7 @@ class CKKS():
 		self.gen_ring_poly()
 		self.L = L
 		self.q0= q0
-		self.p = self.delta
+		self.p = self.delta *2
 		self.h = h
 		self.std = std
 		self.q = self.q0 * (self.p ** self.L) 
@@ -194,8 +195,8 @@ class CKKS():
 
 	def rescale(self, ct):
 		# rescale the ciphertext for level l to l-1
-		print(f'ct[0][0]: {ct[0][0]}')
-		print(f'self.p: {self.p}')
+		# print(f'ct[0][0]: {ct[0][0]}')
+		# print(f'self.p: {self.p}')
 		c0= ct[0][0] // self.p #c0= ct[0][0] / self.delta
 		c1= ct[0][1] // self.p #c1= ct[0][1] / self.delta
 		c0 = round( c0 )

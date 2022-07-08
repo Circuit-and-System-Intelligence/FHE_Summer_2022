@@ -6,7 +6,7 @@
 # and different functions to perform operations
 # on the different polynomials
 
-class Poly():
+class Poly(object):
 
 	def __init__(self,poly=None):
 		# initiliazed the polynomial to an array that is
@@ -88,9 +88,10 @@ class Poly():
 			for ind,i in enumerate(copy):
 				copy[ind] = i + other
 			return copy
-
+		'''
 		if (type(other) != type(self)):
 			return NotImplemented
+		'''
 
 		sz = max(self.size(),other.size())
 		res = [0] * sz
@@ -124,8 +125,10 @@ class Poly():
 				copy[ind] = i - other
 			return copy
 
+		'''
 		if (type(other) != type(self)):
 			return NotImplemented
+		'''
 
 		sz = max(self.size(),other.size())
 		res = [0] * sz
@@ -145,8 +148,10 @@ class Poly():
 				copy[ind] = i * other
 			return copy
 
+		'''
 		if (type(other) != type(self)):
 			return NotImplemented
+		'''
 
 		sz = self.deg() + other.deg() + 1
 		res = [0] * sz
@@ -186,8 +191,10 @@ class Poly():
 				copy[ind] = i / other
 			return copy
 
+		'''
 		if (type(other) != type(self)):
 			return NotImplemented
+		'''
 
 		se = self.copy()
 		ot = other.copy()
@@ -243,8 +250,10 @@ class Poly():
 				copy[ind] = i // other
 			return copy
 
+		'''
 		if (type(other) != type(self)):
 			return NotImplemented
+		'''
 
 		se = self.copy()
 		ot = other.copy()

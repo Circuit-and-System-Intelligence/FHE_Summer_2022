@@ -7,6 +7,7 @@
 
 from ckks import CKKS
 from poly import Poly
+# from counter import PolyCount as Poly
 from vector import Vector, Matrix, matmul, vdot
 import sys
 
@@ -67,7 +68,7 @@ def test():
 def test_ct_mult():
 	print('Testing ct_mult')
 
-	es = CKKS(M=2**8, delta=2**20, q0=2**40, h=64, L=5)
+	es = CKKS(M=2**3, delta=2**20, q0=2**40, h=64, L=5)
 
 	za = [ 1 + 2j, 3 - 4j ]
 	zb = [ 1.5 + 0j, 0 + 1j ]
@@ -84,7 +85,7 @@ def test_ct_mult():
 	# ciphertext polynomials
 	ca = es.encrypt( ma )
 	cb = es.encrypt( mb )
-	print( ca[0][0] )
+	# print( ca[0][0] )
 	# cd = es.encrypt( md )
 
 	# rescale 
@@ -93,15 +94,6 @@ def test_ct_mult():
 
 	# ciphertext multiplication and rescaling
 	cc = es.ct_mult( ca, cb )
-	cc = es.rescale( cc )
-
-	cc = es.ct_mult( cc, cc )
-	cc = es.rescale( cc )
-
-	cc = es.ct_mult( cc, cc )
-	cc = es.rescale( cc )
-
-	cc = es.ct_mult( cc, cc )
 	cc = es.rescale( cc )
 
 	# decryption

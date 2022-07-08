@@ -1,18 +1,19 @@
 from bfv import LPR
+from mont_bfv import Mont_BFV
 from poly import Poly
 import numpy as np
 import sys
 import pickle
+import pdb
+
+#pdb.set_trace()
 
 def main():
-	func = test_multiplication
+	func = mont_test
+	#mont_test()
 	main_test()
-	#small_q()
-	#large_q()
-	#generate_data()
-	#test_addition()
 	#test_multiplication()
-	#testing_many_multiplication()
+	#large_q()
 	return
 
 def demo():
@@ -44,11 +45,9 @@ def main_test():
 	# encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(q=2**22,t=2,n=2**7,bitwidth=32)
+	lpr = LPR(q=2**22,t=2,n=2**5,bitwidth=8)
 
 	# generate a plaintext
-	#pt = 5
-	#pt = np.random.randint(0,50)
 	pt = np.random.randint(0,2)
 
 	# encrypt the plaintext
@@ -96,7 +95,7 @@ def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
 	# q= 2**30, t= 2**1, n=2**10
-	lpr = LPR(t=2,q=2**60,n=2**11,std=2.0)
+	lpr = LPR(t=2,q=2**256,n=2**10,std=2.0)
 
 	# generate the two random numbers between [0,1]
 	#x = 0
@@ -118,7 +117,7 @@ def test_multiplication():
 	print(f'cipher text multiplication',end=': ')
 	print(f'{x} * {y} = {answer}')
 	print(f'Multiplication test: { answer == (x*y) }')
-	print( lpr.opcount )
+	lpr.print_counter_info()
 	return 1 if (answer == (x*y)) else 0
 
 def testing_many_multiplication():
@@ -308,11 +307,11 @@ def large_q():
 	# this function will act as the test of multiplying two cipher texts
 	print('LARGE Q MULT')
 	print('large q = 2**256')
-	print('large n = 2**10')
+	print('large n = 2**7')
 
 	# q= 2**15, t= 2**8, n=2**4
 	#lpr = LPR()
-	lpr = LPR(t=2,q=2**256,n=2**10,std=2.0)
+	lpr = LPR(t=2,q=2**256,n=2**7,std=2.0)
 
 	# generate the two random numbers
 	#x = 1
@@ -383,6 +382,29 @@ def generate_data():
 				# print(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul}')
 				# f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul},{add_add},{add_mul}\n')
 				f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul}\n')
+
+def mont_test():
+	# this function will test montgomery encryption scheme
+	
+	# q= 2**15, t= 2**8, n=2**4
+	lpr = Mont_BFV(q=2**22,t=2,n=2**5,bitwidth=16)
+
+	# generate a plaintext
+	pt = np.random.randint(0,2)
+
+	# encrypt the plaintext
+	ct = lpr.encrypt(pt)
+
+	# decrypt the ciphertext
+	recovered_pt = lpr.decrypt(ct)
+
+	# print the results
+	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
+	print(f'{pt==recovered_pt}')
+	print(' ')
+	lpr.print_counter_info()
+
+	return 1 if pt == recovered_pt else 0
 
 
 
