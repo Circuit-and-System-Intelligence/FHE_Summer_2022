@@ -113,7 +113,7 @@ class Montgomery():
 
 	def fromMont(self, a):
 		# this function will convert out of the Montgomery system
-		return barrett( (a*self.invr), self.n )
+		# return barrett( (a*self.invr), self.n )
 		return ( a * self.invr ) % self.n
 
 	def multiplication(self, a, b):
