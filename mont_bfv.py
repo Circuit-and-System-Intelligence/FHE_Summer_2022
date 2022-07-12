@@ -32,7 +32,7 @@ class Mont_BFV():
 		rlk - relinearization key for reducing ciphertext size after multiplication 
 		"""
 
-		self.mont = Montgomery( q-1, q.bit_length() )
+		self.mont = Montgomery( (q-1)**3, (q**3).bit_length() )
 
 		self.q = q
 		self.t = t
@@ -65,7 +65,7 @@ class Mont_BFV():
 		"""
 		self.gen_sk()
 		self.gen_pk()
-		#self.gen_rlk()
+		self.gen_rlk()
 		
 	def gen_sk(self):
 		"""
@@ -149,9 +149,8 @@ class Mont_BFV():
 		# set counter object for keys
 		oc = self.counters['key']
 
-		# define p for relin2
 		# bigger p means less noise (I think)
-		self.p = (self.q) ** 3
+		self.p = (self.q - 3) ** 3
 
 		# hardcode k for now
 		k = 4
@@ -165,27 +164,30 @@ class Mont_BFV():
 		# ALPHA is a constant based on security parameter
 		ALPHA = 3.758
 
-		sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (B ** sqrt_k) / 9.2 
+		sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( (self.q-1) ** (k-sqrt_k) ) * (B ** sqrt_k) / 9.2 
 
-		e = self.gen_normal_poly(std=sigma_prime)
-		a = self.gen_uniform_poly(q=self.q*self.p)
+		# e = self.gen_normal_poly(std=sigma_prime)
+		e = self.gen_normal_poly(std=0)
+		a = self.gen_uniform_poly(q=self.p)
 
 		# p * (sk^2)
-		ss = oc.poly_mul_poly(self.sk,self.sk) #ss = self.sk * self.sk
+		# ss = oc.poly_mul_poly(self.sk,self.sk) #ss = self.sk * self.sk
+		ss = oc.polypolyMontMul(self.mont, self.sk, self.sk)
 		quo,ss = oc.poly_div_poly(ss, self.fn) #quo,ss = ss / self.fn
-		ss = oc.poly_mul_num( ss, self.p ) #ss = ss * self.p
+		mp = oc.toMont( self.mont, self.p )
+		ss = oc.polynumMontMul( self.mont, ss, mp )
+		# ss = oc.poly_mul_num( ss, self.p ) #ss = ss * self.p
 
 		# -(a*s + e)
-		b = oc.poly_mul_poly(a,self.sk) #b = a * self.sk
+		# b = oc.poly_mul_poly(a,self.sk) #b = a * self.sk
+		b = oc.polypolyMontMul(self.mont, a, self.sk)
 		quo,b = oc.poly_div_poly(b, self.fn) #quo,b = b / self.fn
 		b = oc.poly_add_poly( b, e ) #b = b + e
 		b = oc.poly_mul_num( b, -1 ) #b = b * -1
+		quo,b = oc.poly_div_poly(b, self.fn) #quo,b = b / self.fn
 
 		# -(a*s + e) + p*sk^2
 		b = oc.poly_add_poly( ss, b ) #b = ss + b
-
-		qp = oc.num_mul(self.q, self.p)
-		b = oc.poly_mod( b, qp ) #b = b % (self.q * self.p)
 
 		self.rlk = (b, a)
 		return 
@@ -243,13 +245,11 @@ class Mont_BFV():
 		#print( m )
 
 		delta = oc.floor_div(self.q, self.t) #delta = self.q // self.t
-		delta = self.mont.toMont( delta )
+		delta = oc.toMont( self.mont, delta )
 		scaled_m = m.copy()
 		#scaled_m[0] = delta * scaled_m[0] % self.q
-		for ind, i in enumerate(scaled_m):
-			scaled_m[ind] = self.mont.multiplication( i, delta )
-		#scaled_m = oc.poly_mul_num( scaled_m, delta ) #scaled_m = (scaled_m * delta) 
-		#scaled_m = oc.poly_mod( scaled_m, self.q ) #scaled_m = scaled_m  % self.q
+		scaled_m = oc.polynumMontMul(self.mont, scaled_m, delta )
+
 		# create a new m, which is scaled my q//t % q
 		# generated new error polynomials
 		e1 = self.gen_normal_poly()
@@ -286,15 +286,20 @@ class Mont_BFV():
 		scaled_pt = self.polyadd( self.polymult( ct[1] , self.sk, oc ), ct[0], oc )
 		#print( scaled_pt )
 		for ind, i in enumerate(scaled_pt):
-			scaled_pt[ind] = self.mont.fromMont( i )
+			scaled_pt[ind] = oc.fromMont( self.mont, i )
+			# scaled_pt[ind] = self.mont.fromMont( i )
 
+		scaled_pt = scaled_pt % (self.q-1)
+		#scaled_pt = oc.poly_mod( scaled_pt, self.q-1 ) #scaled_pt = scaled_pt % self.t
+		print( scaled_pt )
+		# scaled_pt = oc.poly_mod( scaled_pt, self.q ) #scaled_pt = scaled_pt % self.t
 		tq = oc.true_div( self.t, self.q )
 
 		scaled_pt = scaled_pt * tq
 
 		scaled_pt.round()
 		scaled_pt = oc.poly_mod( scaled_pt, self.t ) #scaled_pt = scaled_pt % self.t
-		#print( scaled_pt )
+		print( scaled_pt )
 		decrypted_pt = scaled_pt
 
 		# return the first term of the polynomial, which is the plaintext
@@ -352,48 +357,63 @@ class Mont_BFV():
 		# set multiplier counter object
 		oc = self.counters['mul']
 
-		z = []
-		z.append(x[0].copy())
-		z.append(x[1].copy())
-
-		# scale both polynomials in z by (t/q)
-		for ind, num in enumerate(z[0]):
-			nt = oc.num_mul( num, self.t )
-			ntq= oc.true_div( nt, self.q )
-			z[0][ind] = round(num * self.t / self.q)
-
-		for ind, num in enumerate(z[1]):
-			nt = oc.num_mul( num, self.t )
-			ntq= oc.true_div( nt, self.q )
-			z[1][ind] = round(num * self.t / self.q)
-
+		# calculate terms for mult
+		mt = oc.toMont( self.mont, self.t )
+		mq = oc.toMont( self.mont, self.q-1 )
+		# invmq = self.mont.inverse_modulus(mq,self.mont.n)
+		invq = self.mont.inverse_modulus(self.q-1,self.mont.n)
+		invmq = oc.toMont( self.mont, invq )
+		# print(f'mq*invmq: {self.mont.fromMont(self.mont.multiplication(mq,invmq))}')
 
 		# c0 = ct0[0]*ct1[0]
-		c0 = oc.poly_mul_poly( x[0], y[0] ) #c0 = x[0] * y[0]
+		# c0 = oc.poly_mul_poly( x[0], y[0] ) #c0 = x[0] * y[0]
+		c0 = oc.polypolyMontMul( self.mont, x[0], y[0] )
 		quo,c0 = oc.poly_div_poly( c0, self.fn ) #quo,c0 = c0 / self.fn
-		tq = oc.true_div( self.t, self.q )
-		c0 = oc.poly_mul_num( c0, tq ) #c0 = c0 * ( self.t / self.q )
-		c0.round()
-		c0 = oc.poly_mod( c0, self.q ) #c0 = c0 % self.q
+		c0 = oc.polynumMontMul( self.mont, c0, mt )
+		c0 = oc.polynumMontMul( self.mont, c0, invmq )
 
 		# c1 = ct0[0]*ct1[1] + ct0[1]*ct1[0]
-		ca = oc.poly_mul_poly( x[0], y[1] )
-		cb = oc.poly_mul_poly( x[1], y[0] )
+		# ca = oc.poly_mul_poly( x[0], y[1] )
+		# cb = oc.poly_mul_poly( x[1], y[0] )
+		ca = oc.polypolyMontMul( self.mont, x[0], y[1] )
+		cb = oc.polypolyMontMul( self.mont, x[1], y[0] )
 		c1 = oc.poly_add_poly( ca, cb ) #c1 = (x[0]*y[1]) + (x[1]*y[0])
 
 		quo,c1 = oc.poly_div_poly( c1, self.fn ) #quo,c1 = c1 / self.fn
-		tq = oc.true_div( self.t, self.q )
-		c1 = oc.poly_mul_num( c1, tq ) #c1 = c1 * ( self.t / self.q )
-		c1.round()
-		c1 = oc.poly_mod( c1, self.q ) #c1 = c1 % self.q
+		c1 = oc.polynumMontMul( self.mont, c1, mt )
+		c1 = oc.polynumMontMul( self.mont, c1, invmq )
 
 		# c2 = ct0[1]*ct1[1]
-		c2 = oc.poly_mul_poly( x[1], y[1] ) #c2 = x[1] * y[1]
+		# c2 = oc.poly_mul_poly( x[1], y[1] ) #c2 = x[1] * y[1]
+		c2 = oc.polypolyMontMul( self.mont, x[1], y[1] )
 		quo,c2 = oc.poly_div_poly( c2, self.fn ) #quo,c2 = c2 / self.fn
+		c2 = oc.polynumMontMul( self.mont, c2, mt )
+		c2 = oc.polynumMontMul( self.mont, c2, invmq )
+
+		'''
+		# check if relin is failing
+		t0 = c0
+		t1 = oc.polypolyMontMul( self.mont, c1, self.sk )
+		quo,t1 = oc.poly_div_poly( t1, self.fn )
+		ss = oc.polypolyMontMul( self.mont, self.sk, self.sk )
+		quo,ss = oc.poly_div_poly( ss, self.fn )
+		t2 = oc.polypolyMontMul( self.mont, c2, ss )
+		quo,t2 = oc.poly_div_poly( t2, self.fn )
+
+
+		scaled_pt = self.polyadd( t0, self.polyadd( t1, t2, oc ), oc )
+
+		for ind, i in enumerate(scaled_pt):
+			scaled_pt[ind] = oc.fromMont( self.mont, i )
+		
+		scaled_pt = oc.poly_mod( scaled_pt, self.q-1 ) #scaled_pt = scaled_pt % self.t
+		print( scaled_pt )
 		tq = oc.true_div( self.t, self.q )
-		c2 = oc.poly_mul_num( c2, tq ) #c2 = c2 * ( self.t / self.q )
-		c2.round()
-		c2 = oc.poly_mod( c2, self.q ) #c2 = c2 % self.q
+		scaled_pt = scaled_pt * tq
+		scaled_pt.round()
+		scaled_pt = oc.poly_mod( scaled_pt, self.t ) #scaled_pt = scaled_pt % self.t
+		print(scaled_pt)
+		'''
 
 		ret = self.relin(c0,c1,c2)
 
@@ -425,27 +445,31 @@ class Mont_BFV():
 		# set relin object
 		oc = self.counters['relin']
 
+		mp = oc.toMont( self.mont, self.p )
+		invp = self.mont.inverse_modulus( self.p, self.mont.n )
+		invmp = oc.toMont( self.mont, invp )
+		# invmp = self.mont.inverse_modulus( mp, self.mont.n )
+		# print(f'mp = {mp}')
+		# print(f'invmp = {invmp}')
+		# print(f'mp*invmp = {mp*invmp % ((self.q-1)**3)}')
+		# print(f'mp*invmp = {self.mont.fromMont(self.mont.multiplication(mp,invmp))}')
+
+		c2 = oc.polynumMontMul( self.mont, c2, invmp )
+
 		# c20 = (c2 * rlk[0]/p)
-		c20 = oc.poly_mul_poly( c2, self.rlk[0] ) #c20 = c2 * self.rlk[0]	
+		# c20 = oc.poly_mul_poly( c2, self.rlk[0] ) #c20 = c2 * self.rlk[0]	
+		c20 = oc.polypolyMontMul( self.mont, c2, self.rlk[0] )
+		# c20 = oc.polynumMontMul( self.mont, c20, invmp )
 		quo,c20 = oc.poly_div_poly( c20, self.fn ) #quo,c20 = c20 / self.fn
-		c20 = oc.poly_div_num( c20, self.p ) #c20 = c20 / self.p
-		c20.round()
-		c20 = oc.poly_mod( c20, self.q ) #c20 = c20 % self.q
 
 		# c21 = (c2 * rlk[1]/p)
-		c21 = oc.poly_mul_poly( c2, self.rlk[1] ) #c21 = c2 * self.rlk[1]	
+		# c21 = oc.poly_mul_poly( c2, self.rlk[1] ) #c21 = c2 * self.rlk[1]	
+		c21 = oc.polypolyMontMul( self.mont, c2, self.rlk[1] )
+		# c21 = oc.polynumMontMul( self.mont, c21, invmp )
 		quo, c21 = oc.poly_div_poly( c21, self.fn ) #quo,c21 = c21 / self.fn
-		c21 = oc.poly_div_num( c21, self.p ) #c21 = c21 / self.p
-		c21.round()
-		c21 = oc.poly_mod( c21, self.q ) #c21 = c21 % self.q
 
-		# c0' = c0 + c20
-		# c1' = c1 + c21
 		_c0 = oc.poly_add_poly( c0, c20 ) #_c0 = c0 + c20
 		_c1 = oc.poly_add_poly( c1, c21 ) #_c1 = c1 + c21
-
-		_c0 = oc.poly_mod( _c0, self.q ) #_c0 = _c0 % self.q
-		_c1 = oc.poly_mod( _c1, self.q ) #_c1 = _c1 % self.q
 
 		return (_c0, _c1)
 
@@ -487,12 +511,15 @@ class Mont_BFV():
 			oc = self.opcount
 
 		# z = oc.poly_mul_poly( x, y ) #z = x * y
+		z = oc.polypolyMontMul( self.mont, x, y )
 
+		'''
 		z = Poly( [0]*(len(x)+len(y)) )
 
 		for ind, i in enumerate(x):
 			for jnd, j in enumerate(y):
 				z[ind+jnd] += self.mont.multiplication( i, j )
+		'''
 
 		quo, rem = oc.poly_div_poly( z, self.fn ) #quo, rem = (z / self.fn)
 		z = rem
