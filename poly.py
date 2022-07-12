@@ -19,6 +19,8 @@ class Poly(object):
 	def __getitem__(self, key):
 		# returns the coefficient at given term
 		# utilizes python's [] operator
+		if key >= len( self ):
+			return 0
 		return self.poly[key]
 
 	def __setitem__(self, key, value):
@@ -54,10 +56,15 @@ class Poly(object):
 		if ( other == None ):
 			return False
 
-		if ( self.size() != other.size() ):
+		se = self.copy()
+		ot = other.copy()
+		se.zero_deg()
+		ot.zero_deg()
+
+		if ( se.size() != ot.size() ):
 			return False
 
-		for i,j in zip(self,other):
+		for i,j in zip(se,ot):
 			if i != j:
 				return False
 

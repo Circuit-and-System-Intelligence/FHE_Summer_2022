@@ -108,7 +108,7 @@ class Montgomery():
 
 	def toMont(self, a):
 		# this function will convert into the Montgomery system
-		return barrett( (a*self.r), self.n )
+		# return barrett( (a*self.r), self.n )
 		return (a*self.r) % self.n
 
 	def fromMont(self, a):

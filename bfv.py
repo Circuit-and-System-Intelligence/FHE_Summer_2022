@@ -191,8 +191,12 @@ class LPR():
 
 		# ALPHA is a constant based on security parameter
 		ALPHA = 3.758
-
-		sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (B ** sqrt_k) / 9.2 
+		
+		try: 
+			sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (B ** sqrt_k) / 9.2 
+		except OverflowError:	
+			sqrt_k = int(sqrt_k)
+			sigma_prime = int(int( 4 ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (int(B) ** sqrt_k) // 9) 
 
 		e = self.gen_normal_poly(std=sigma_prime)
 		a = self.gen_uniform_poly(q=self.q*self.p)
@@ -273,9 +277,12 @@ class LPR():
 		# set encryption counter object 
 		oc = self.counters['enc']
 
-		m = [pt]
+		m = pt
+		if ( type(pt) == int ):
+			m = [pt]
+			m = Poly(m)
+
 		# m = Poly(m)
-		m = Poly(m)
 		m = oc.poly_mod( m, self.q ) #m = m % self.q
 		#print( m )
 
@@ -346,6 +353,7 @@ class LPR():
 		# scaled_pt = ct[1]*sk + ct[0]
 		#scaled_pt = self.polyadd( self.polymult( ct[1], self.sk ), ct[0] )
 		scaled_pt = self.polyadd( oc.poly_mul_poly( ct[1] , self.sk ), ct[0], oc )
+		# print( scaled_pt )
 
 		tq = oc.true_div( self.t, self.q )
 		scaled_pt = oc.poly_mul_num( scaled_pt, tq ) 
@@ -359,7 +367,8 @@ class LPR():
 		decrypted_pt = scaled_pt
 
 		# return the first term of the polynomial, which is the plaintext
-		return int(decrypted_pt[0])
+		return decrypted_pt
+		#return int(decrypted_pt[0])
 
 	def ctadd(self, x, y):
 		"""
@@ -432,8 +441,12 @@ class LPR():
 		# c0 = ct0[0]*ct1[0]
 		c0 = oc.poly_mul_poly( x[0], y[0] ) #c0 = x[0] * y[0]
 		quo,c0 = oc.poly_div_poly( c0, self.fn ) #quo,c0 = c0 / self.fn
-		tq = oc.true_div( self.t, self.q )
-		c0 = oc.poly_mul_num( c0, tq ) #c0 = c0 * ( self.t / self.q )
+		# tq = oc.true_div( self.t, self.q )
+		t = self.t
+		q = self.q
+		# c0 = oc.poly_mul_num( c0, tq ) #c0 = c0 * ( self.t / self.q )
+		c0 = oc.poly_mul_num( c0, t ) #c0 = c0 * ( self.t / self.q )
+		c0 = oc.poly_div_num( c0, q )
 		c0.round()
 		c0 = oc.poly_mod( c0, self.q ) #c0 = c0 % self.q
 
@@ -444,7 +457,8 @@ class LPR():
 
 		quo,c1 = oc.poly_div_poly( c1, self.fn ) #quo,c1 = c1 / self.fn
 		tq = oc.true_div( self.t, self.q )
-		c1 = oc.poly_mul_num( c1, tq ) #c1 = c1 * ( self.t / self.q )
+		c1 = oc.poly_mul_num( c1, t ) #c1 = c1 * ( self.t / self.q )
+		c1 = oc.poly_div_num( c1, q )
 		c1.round()
 		c1 = oc.poly_mod( c1, self.q ) #c1 = c1 % self.q
 
@@ -452,7 +466,8 @@ class LPR():
 		c2 = oc.poly_mul_poly( x[1], y[1] ) #c2 = x[1] * y[1]
 		quo,c2 = oc.poly_div_poly( c2, self.fn ) #quo,c2 = c2 / self.fn
 		tq = oc.true_div( self.t, self.q )
-		c2 = oc.poly_mul_num( c2, tq ) #c2 = c2 * ( self.t / self.q )
+		c2 = oc.poly_mul_num( c2, t ) #c2 = c2 * ( self.t / self.q )
+		c2 = oc.poly_div_num( c2, q )
 		c2.round()
 		c2 = oc.poly_mod( c2, self.q ) #c2 = c2 % self.q
 

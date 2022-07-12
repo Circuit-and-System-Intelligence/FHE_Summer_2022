@@ -214,7 +214,7 @@ class OperationsCounter():
 		self.mul += ((a*b).bit_length() // self.bitwidth) + 1
 		self.mul += ((a*b*mont.k).bit_length() // self.bitwidth) + 1
 		self.mul += ((a*b*mont.k*mont.n).bit_length() // self.bitwidth) + 1
-		self.add += ((x+a*b*mont.k*mont.n).bit_length() // self.bitwidth) + 1
+		self.add += ((a*b+a*b*mont.k*mont.n).bit_length() // self.bitwidth) + 1
 		self.add += ((mont.n).bit_length() // self.bitwidth) + 1
 		return mont.multiplication(a, b)
 
@@ -225,6 +225,27 @@ class OperationsCounter():
 		self.add += int(abs( a // mont.n )) * ( 1 + ( a.bit_length() // self.bitwidth) )
 		self.mod += 1
 		return mont.fromMont( a )
+
+	def polypolyMontMul(self, mont, a, b):
+		# this will count multiplications for multiplying
+		# in the montgomery system
+
+		z = Poly( [0]*(len(a)+len(b)) )
+
+		for ind, i in enumerate(a):
+			for jnd, j in enumerate(b):
+				z[ind+jnd] += self.montMultiplication( mont, i, j )
+				# z[ind+jnd] += mont.multiplication( i, j )
+		return z
+
+	def polynumMontMul(self, mont, a, b):
+		# this will perform a coefficient multiplication
+		# across polynomial a
+		ret = a.copy()
+		for ind, i in enumerate( ret ):
+			ret[ind] = self.montMultiplication( mont, i, b )
+
+		return ret
 		
 	def append_addbits(self, num):
 		# this function will add the bitlength
