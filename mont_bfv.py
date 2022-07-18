@@ -303,6 +303,7 @@ class Mont_BFV():
 		decrypted_pt = scaled_pt
 
 		# return the first term of the polynomial, which is the plaintext
+		return decrypted_pt
 		return int(decrypted_pt[0])
 
 	def ctadd(self, x, y):
@@ -495,8 +496,8 @@ class Mont_BFV():
 			oc = self.opcount
 
 		z = oc.poly_add_poly( x, y ) #z = x + y
-		quo,rem = oc.poly_div_poly( z, self.fn ) #quo,rem = (z / self.fn)
-		z = rem
+		# quo,rem = oc.poly_div_poly( z, self.fn ) #quo,rem = (z / self.fn)
+		# z = rem
 
 		# z = oc.poly_mod( z, self.q ) #z = z % self.q
 		#z = self.mod(z)

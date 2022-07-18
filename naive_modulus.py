@@ -72,7 +72,7 @@ def barrett(a, n):
 	if c > n:
 		c -= n
 	
-	assert c == a % n
+	# assert c == a % n
 	return c
 
 class Montgomery():
