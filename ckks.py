@@ -7,6 +7,7 @@
 
 from poly import Poly
 #from counter import PolyCount as Poly
+from counter import OperationsCounter
 from vector import Vector, Matrix, vdot, matmul, linalg
 import numpy as np
 import random
@@ -24,11 +25,12 @@ class CKKS():
 		self.gen_ring_poly()
 		self.L = L
 		self.q0= q0
-		self.p = self.delta *2
+		self.p = self.delta
 		self.h = h
 		self.std = std
 		self.q = self.q0 * (self.p ** self.L) 
 		self.P = (self.q ** 3) + 1
+		self.counters_gen()
 		self.key_gen()
 		return
 
@@ -62,14 +64,18 @@ class CKKS():
 		# e <- normal dist
 		# s <- secret key
 		# b = -a*s + e
+
+		# create counter object
+		oc = self.counters['key']
+
 		a = self.gen_uniform(self.q,self.N)
 		e = self.gen_normal(N=self.N)
 
-		b = a * -1
-		b = b * self.sk
-		quo,b = b // self.fn
-		b = b + e
-		b = b % self.q
+		b = oc.poly_mul_num( a, -1 ) # b = a * -1
+		b = oc.poly_mul_poly( b, self.sk ) # b = b * self.sk
+		quo,b = oc.poly_div_poly( b, self.fn ) # quo,b = b // self.fn
+		b = oc.poly_add_poly( b, e ) # b = b + e
+		b = oc.poly_mod( b, self.q ) # b = b % self.q
 		#b = self.ring_mod( b, self.q )
 
 		self.pk = ( b , a )
@@ -82,9 +88,14 @@ class CKKS():
 		# e  <- normal dist
 		# s  <- secret key
 		# b' = -a*s + e + P*s^2
+
+		# create counter object
+		oc = self.counters['key']
+
 		a = self.gen_uniform( self.q*self.P, self.N )
 		e = self.gen_normal(N=self.N)
 
+		'''
 		ss = self.sk * self.sk
 		quo,ss = ss // self.fn
 		ss = ss * self.P
@@ -98,9 +109,34 @@ class CKKS():
 		
 		#b = self.ring_mod( b, (self.q * self.P) )
 		b = b % (self.q * self.P)
+		'''
+		ss = oc.poly_mul_poly( self.sk, self.sk )
+		quo,ss = oc.poly_div_poly( ss, self.fn )
+		ss = oc.poly_mul_num( ss, self.P )
+
+		b = oc.poly_mul_num( a, -1 )
+		b = oc.poly_mul_poly( b, self.sk )
+		quo,b = oc.poly_div_poly( b, self.fn )
+		b = oc.poly_add_poly( b, e )
+
+		b = oc.poly_add_poly( b, ss )
+
+		b = oc.poly_mod( b, self.q*self.P )
 
 		self.evk = ( b, a )
 		return
+
+	def counters_gen(self,bitwidth=32):
+		# this function will generate operation counters
+
+		#create operations counter dictionary
+		self.counters = {}
+		self.counters['enc'] = OperationsCounter(bitwidth)
+		self.counters['dec'] = OperationsCounter(bitwidth)
+		self.counters['key'] = OperationsCounter(bitwidth)
+		self.counters['add'] = OperationsCounter(bitwidth)
+		self.counters['mul'] = OperationsCounter(bitwidth)
+		self.counters['rescale'] = OperationsCounter(bitwidth)
 
 	def gen_binary(self,N=None):
 		# generate a binary polynomial
@@ -149,13 +185,21 @@ class CKKS():
 		#m = m % self.q
 		#print( self.q )
 		#m = self.ring_mod( m, self.q )
+
+		# create counter object
+		oc = self.counters['enc']
+
+		'''
 		m = m % self.q
+		'''
+		m = oc.poly_mod( m, self.q )
 
 		# v <- ZO(0.5) , e0 <- normal dist, e1 < normal dist
 		v = self.gen_zo( 0.5, self.N )
 		e0 = self.gen_normal(N=self.N)
 		e1 = self.gen_normal(N=self.N)
 
+		'''
 		# c0 = v * pk[0] + m + e0 (mod q)
 		c0 = v * self.pk[0]
 		quo,c0 = c0 // self.fn
@@ -163,13 +207,25 @@ class CKKS():
 		c0 = c0 + e0
 		c0 = c0 % self.q
 		#c0 = self.ring_mod( c0, self.q )
+		'''
+		c0 = oc.poly_mul_poly( v, self.pk[0] )
+		quo,c0 = oc.poly_div_poly( c0, self.fn )
+		c0 = oc.poly_add_poly( c0, m )
+		c0 = oc.poly_add_poly( c0, e0 )
+		c0 = oc.poly_mod( c0, self.q )
 
+		'''
 		# c1 = v * pk[1] + e1 (mod q)
 		c1 = v * self.pk[1]
 		quo,c1 = c1 // self.fn
 		c1 = c1 + e1
 		c1 = c1 % self.q
 		#c1 = self.ring_mod( c1, self.q )
+		'''
+		c1 = oc.poly_mul_poly( v, self.pk[1] )
+		quo,c1 = oc.poly_div_poly( c1, self.fn )
+		c1 = oc.poly_add_poly( c1, e1 )
+		c1 = oc.poly_mod( c1, self.q )
 
 		# calculate canonical inifity norm of m
 		vn = self.canonical_inf_norm( cm )
@@ -182,12 +238,21 @@ class CKKS():
 	def decrypt(self, ct):
 		# decrypt ciphertext to plaintext polynomial
 
+		# create counter object
+		oc = self.counters['dec']
+
+		'''
 		# m = ct[0] + ct[1] * s (mod q)
 		m = ct[0][1] * self.sk
 		quo,m = m // self.fn
 		m = m + ct[0][0]
+		'''
 		#m = m % self.q
 		q = (self.p ** ct[1] ) * self.q0 #q = (self.delta ** ct[1] ) * self.q0
+
+		m = oc.poly_mul_poly( ct[0][1], self.sk )
+		quo,m = oc.poly_div_poly( m, self.fn )
+		m = oc.poly_add_poly( m, ct[0][0] )
 
 		m = self.ring_mod( m, q )
 
@@ -197,8 +262,16 @@ class CKKS():
 		# rescale the ciphertext for level l to l-1
 		# print(f'ct[0][0]: {ct[0][0]}')
 		# print(f'self.p: {self.p}')
+
+		# create counter object
+		oc = self.counters['rescale']
+
+		'''
 		c0= ct[0][0] // self.p #c0= ct[0][0] / self.delta
 		c1= ct[0][1] // self.p #c1= ct[0][1] / self.delta
+		'''
+		c0 = oc.poly_div_num( ct[0][0], self.p )
+		c1 = oc.poly_div_num( ct[0][1], self.p )
 		c0 = round( c0 )
 		c1 = round( c1 )
 		l = ct[1] - 1
@@ -483,6 +556,26 @@ class CKKS():
 		ret = self.pi( sig )
 
 		return ret
+
+	def print_counter_info(self):
+		"""
+		this function will print out the operation
+		costs for each function (enc,dec,ctadd,ctmult...)
+		"""
+
+		print('Encryption OpCount')
+		print( self.counters['enc'] )
+		print('\nDecryption OpCount')
+		print( self.counters['dec'] )
+		print('\nKeyGen OpCount')
+		print( self.counters['key'] )
+		print('\nAdd OpCount')
+		print( self.counters['add'] )
+		print('\nMul OpCount')
+		print( self.counters['mul'] )
+		print('\nRescale OpCount')
+		print( self.counters['rescale'] )
+
 
 
 def main():
