@@ -1,4 +1,4 @@
-from bfv import LPR
+from bfv import BFV
 from mont_bfv import Mont_BFV
 from poly import Poly
 import numpy as np
@@ -10,11 +10,12 @@ import pdb
 
 def main():
 	func = mont_test
+	generate_data()
 	#mont_test()
 	#main_test()
 	#test_multiplication()
 	#large_q()
-	mult_enc()
+	#mult_enc()
 	# testing_many_multiplication()
 	return
 
@@ -47,7 +48,7 @@ def main_test():
 	# encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = LPR(q=2**22,t=2,n=2**5,bitwidth=8)
+	es = BFV(q=2**22,n=2**5)
 
 	# generate a plaintext
 	pt = np.random.randint(0,2)
@@ -70,8 +71,8 @@ def test_addition():
 	# this function will act as the test of adding two cipher texts
 
 	# q= 2**15, t= 2**8, n=2**4
-	#lpr = LPR()
-	lpr = LPR(t=2,q=2**128,n=2**10,std=3.8)
+	#lpr = BFV()
+	lpr = BFV(t=2,q=2**128,n=2**10,std=3.8)
 
 	# generate the two random numbers
 	#x = 1
@@ -97,37 +98,53 @@ def test_multiplication():
 	# this function will act as the test of adding two cipher texts
 
 	# q= 2**30, t= 2**1, n=2**10
-	lpr = LPR(t=2,q=2**256,n=2**10,std=2.0)
+	# lpr = BFV(t=2,q=2**256,n=2**10,std=2.0)
+	lpr = BFV(t=2**3,q=2**15,n=2**5,std=2.0,h=2**1)
 
 	# generate the two random numbers between [0,1]
 	#x = 0
 	#y = 0
 	x = np.random.randint(0,2)
 	y = np.random.randint(0,2)
+	x = 2
+	y = 3
 	print(f'{x} and {y} are randomly generated')
+	print(' ')
 
 	# encrypt both ciphertexts
 	ctx = lpr.encrypt(x)
 	cty = lpr.encrypt(y)
+	print(f'ctx[0] {ctx[0]}')
+	print(f'encryping {x}... => {ctx[0].poly[0:4]} {ctx[0].poly[30:32]}')
+	print(f'encryping {y}... => {cty[0].poly[0:4]} {cty[0].poly[30:32]}')
+	# print(f'{hex(ctx[0][0])}\n{hex(ctx[0][1])}\n{hex(ctx[0][30])}\n{hex(ctx[0][31])}\n')
+	# print(f'{hex(cty[0][0])}\n{hex(cty[0][1])}\n{hex(cty[0][30])}\n{hex(cty[0][31])}\n')
+	print(' ')
 
 	# multiply the ciphertexts
 	ctz = lpr.ctmult(ctx,cty)
+	print(f'{ctz[0].poly[0:4]} {ctz[0].poly[30:32]}')
+	# print(f'{hex(ctz[0][0])}\n{hex(ctz[0][1])}\n{hex(ctz[0][30])}\n{hex(ctz[0][31])}\n')
+	print(' ')
 
 	# decrypt the ciphertext
 	answer = lpr.decrypt(ctz)
+	answer = answer[0]
+	print(f'decrypting {ctz[0][0] % 256}... => {answer}')
+	print(' ')
 
-	print(f'cipher text multiplication',end=': ')
-	print(f'{x} * {y} = {answer}')
+	# print(f'cipher text multiplication',end=': ')
+	# print(f'{x} * {y} = {answer}')
 	print(f'Multiplication test: { answer == (x*y) }')
-	lpr.print_counter_info()
+	# lpr.print_counter_info()
 	return 1 if (answer == (x*y)) else 0
 
 def testing_many_multiplication():
 
 	# q= 2**15, t= 2**8, n=2**4
-	# lpr = LPR(t=2,n=2**4,q=2**31)
-	# lpr = LPR(t=2,q=2**65,n=2**5,h=2**4,std=3.4)
-	lpr = LPR(t=2,q=2**100,n=2**3,h=2**2,std=2.0)
+	# lpr = BFV(t=2,n=2**4,q=2**31)
+	# lpr = BFV(t=2,q=2**65,n=2**5,h=2**4,std=3.4)
+	lpr = BFV(t=2,q=2**100,n=2**3,h=2**2,std=2.0)
 
 	a = 1
 	b = 1
@@ -166,8 +183,8 @@ def	demo_counter():
 	print('Small Addition n=2**4')
 
 	# q= 2**15, t= 2**8, n=2**4
-	#lpr = LPR()
-	lpr = LPR(t=2,q=2**38,n=2**4,std=3.8)
+	#lpr = BFV()
+	lpr = BFV(t=2,q=2**38,n=2**4,std=3.8)
 
 	# generate the two random numbers
 	#x = 1
@@ -194,8 +211,8 @@ def	demo_counter():
 	print('Large Addition n=2**10')
 
 	# q= 2**15, t= 2**8, n=2**4
-	#lpr = LPR()
-	lpr = LPR(t=2,q=2**38,n=2**10,std=3.8)
+	#lpr = BFV()
+	lpr = BFV(t=2,q=2**38,n=2**10,std=3.8)
 
 	# generate the two random numbers
 	#x = 1
@@ -221,8 +238,8 @@ def	demo_counter():
 	print('Small Multiplication n=2**4')
 
 	# q= 2**15, t= 2**8, n=2**4
-	#lpr = LPR()
-	lpr = LPR(t=2,q=2**38,n=2**4,std=3.8)
+	#lpr = BFV()
+	lpr = BFV(t=2,q=2**38,n=2**4,std=3.8)
 
 	# generate the two random numbers
 	#x = 1
@@ -251,8 +268,8 @@ def	demo_counter():
 	print('Large Multiplication n=2**10')
 
 	# q= 2**15, t= 2**8, n=2**4
-	#lpr = LPR()
-	lpr = LPR(t=2,q=2**30,n=2**10,std=2.0)
+	#lpr = BFV()
+	lpr = BFV(t=2,q=2**30,n=2**10,std=2.0)
 
 	# generate the two random numbers
 	#x = 1
@@ -283,8 +300,8 @@ def small_q():
 	print('small n = 2**3')
 
 	# q= 2**15, t= 2**8, n=2**4
-	#lpr = LPR()
-	lpr = LPR(t=2,q=2**15,n=2**3,std=2.0)
+	#lpr = BFV()
+	lpr = BFV(t=2,q=2**15,n=2**3,std=2.0)
 
 	# generate the two random numbers
 	#x = 1
@@ -314,8 +331,8 @@ def large_q():
 	print('large n = 2**7')
 
 	# q= 2**15, t= 2**8, n=2**4
-	#lpr = LPR()
-	lpr = LPR(t=2,q=2**256,n=2**7,std=2.0)
+	#lpr = BFV()
+	lpr = BFV(t=2,q=2**256,n=2**7,std=2.0)
 
 	# generate the two random numbers
 	#x = 1
@@ -341,51 +358,68 @@ def large_q():
 def generate_data():
 	# this function will generate the data for increasing q and increasing d for rings (x^d + 1)
 
-	with open("data/bfv_std.csv","w") as f:
+	print('input file name')
+	fn = input()
+
+	print('input qmin, qmax, qstep')
+	qmin = int(input())
+	qmax = int(input())
+	qstep = int(input())
+	print('input nmin, nmax, nstep')
+	nmin = int(input())
+	nmax = int(input())
+	nstep = int(input())
+
+	with open(f"data/{fn}.csv","w") as f:
 		# f.write(f'q,d,enc_add,enc_mul,dec_add,dec_mul,key_add,key_mul\n')
-		f.write(f'n,q,enc\n')
-		for d in range(10,11):
-			for q in range(16,257,16):
+		f.write(f't=2, h=16, std=2, q = 128\n')
+		f.write(f'n,q,add,mul\n')
+		for d in range(nmin,nmax,nstep):
+			for q in range(qmin,qmax,qstep):
 				print(f'q={q} d={d}')
-				lpr = LPR(t=2,q=2**q,n=2**d,std=2.0)
-				skip = False
-				for n in range(100):
+				add_list = []
+				add_max = 0
+				add_min = 2 ** 256
+				print('here')
+				for j in range(25):
+					lpr = BFV(t=2,q=2**q,n=2**d,std=2.0,h=16)
 					x = np.random.randint(0,2)
-					# y = np.random.randint(0,2)
+					y = np.random.randint(0,2)
 					ctx = lpr.encrypt(x)
-					# cty = lpr.encrypt(y)
-					# ctz = lpr.ctmult(ctx,cty)
-					z = lpr.decrypt(ctx)
-					if (z != x):
-						f.write(f'{d},{q},False\n')
-						skip = True
-						break
-					#assert z == x
+					cty = lpr.encrypt(y)
+					ctz = lpr.ctadd(ctx,cty)
+					z = lpr.decrypt(ctz)[0]
+					assert z == x^y
 
-				if skip:
-					continue
+					enc_add = lpr.counters['enc'].add
+					enc_mul = lpr.counters['enc'].mul
 
-				f.write(f'{d},{q},True\n')
-				continue
-				enc_add = lpr.counters['enc'].add
-				enc_mul = lpr.counters['enc'].mul
-				enc_mod = lpr.counters['enc'].mod
+					dec_add = lpr.counters['dec'].add
+					dec_mul = lpr.counters['dec'].mul
 
-				dec_add = lpr.counters['dec'].add
-				dec_mul = lpr.counters['dec'].mul
-				dec_mod = lpr.counters['dec'].mod
+					key_add = lpr.counters['key'].add
+					key_mul = lpr.counters['key'].mul
 
-				key_add = lpr.counters['key'].add
-				key_mul = lpr.counters['key'].mul
-				key_mod = lpr.counters['key'].mod
+					add_add = lpr.counters['mul'].add
+					add_mul = lpr.counters['mul'].mul
 
-				add_add = lpr.counters['add'].add
-				add_mul = lpr.counters['add'].mul
-				add_mod = lpr.counters['add'].mod
+					add_count = enc_add+dec_add+key_add+add_add
+					mul_count = enc_mul+dec_mul+key_mul+add_mul
+					add_list.append( add_count )
 
+					if add_count > add_max:
+						add_max = add_count
+					if add_count < add_min:
+						add_min = add_count
+
+				add_avg = sum( add_list ) / 100
+				add_std = np.std( add_list )
+
+				f.write(f'{q}, {d}, {add_avg}, {add_std}, {add_max}, {add_min}\n')
+				# f.write(f'{q}, {d}, {enc_add+dec_add+key_add+add_add}, {enc_mul+dec_mul+key_mul+add_mul}\n')
 				# print(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul}')
 				# f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul},{add_add},{add_mul}\n')
-				f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul}\n')
+				# f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul}\n')
 
 def mont_test():
 	# this function will test montgomery encryption scheme
@@ -427,13 +461,13 @@ def mult_enc():
 	n = 2 ** 6 # defined as d in bfv paper
 	x = 100 # defined as n in bfv paper. q = 2 ^ x
 
-	lprA = LPR(q=2**x,t=2,n=n,h=2**2)
-	lprB = LPR(q=2**x,t=2,n=n,h=2**2)
+	lprA = BFV(q=2**x,t=2,n=n,h=2**2)
+	lprB = BFV(q=2**x,t=2,n=n,h=2**2)
 	'''
-	lpr = LPR(t=2,q=2**100,n=2**6,h=2**2,std=2.0)
+	lpr = BFV(t=2,q=2**100,n=2**6,h=2**2,std=2.0)
 	'''
-	# lprA = LPR(q=2**20,t=2,n=2**5)
-	# lprB = LPR(q=2**20,t=2,n=2**5)
+	# lprA = BFV(q=2**20,t=2,n=2**5)
+	# lprB = BFV(q=2**20,t=2,n=2**5)
 
 	a = 1
 	a = Poly([1,0,0,1,1,1,0,0])

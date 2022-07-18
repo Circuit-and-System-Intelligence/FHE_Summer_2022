@@ -28,7 +28,7 @@ class OperationsCounter():
 	# numbers, e.g. float or int
 	def num_add(self, x, y):
 		# self.add += 1
-		self.add += self.bitrep(x+y)
+		self.add += self.bitadd(x+y)
 		self.append_addbits(x+y)
 		return x + y
 
@@ -36,7 +36,7 @@ class OperationsCounter():
 	# numbers, e.g. float or int
 	def num_sub(self, x, y):
 		# self.add += 1
-		self.add += self.bitrep(x-y)
+		self.add += self.bitadd(x-y)
 		self.append_addbits(x-y)
 		return x - y
 
@@ -44,7 +44,7 @@ class OperationsCounter():
 	# numbers, e.g. float or int
 	def num_mul(self, x, y):
 		# self.mul += 1
-		self.mul += self.bitrep(x*y)
+		self.mul += self.bitmult(x*y)
 		self.append_mulbits(x*y)
 		return x * y
 
@@ -65,7 +65,7 @@ class OperationsCounter():
 	# count a simple modulus between two
 	# numbers, e.g. float or int
 	def num_mod(self, x, y):
-		#return self.naive_modulus_count(x,y)
+		# return self.naive_modulus_count(x,y)
 		return self.barrett_count(x,y)
 		'''
 		self.mod += 1
@@ -77,7 +77,7 @@ class OperationsCounter():
 		# self.add += len( p )
 		ret = p + c
 		for r in ret:
-			self.add += self.bitrep(r)
+			self.add += self.bitadd(r)
 			self.append_addbits( r )
 		return p + c
 
@@ -86,7 +86,7 @@ class OperationsCounter():
 		# self.add += len( p )
 		ret = p - c
 		for r in ret:
-			self.add += self.bitrep(r)
+			self.add += self.bitadd(r)
 			self.append_addbits( r )
 		return p - c
 
@@ -95,7 +95,7 @@ class OperationsCounter():
 		# self.mul += len( p )
 		ret = p * c
 		for r in ret:
-			self.mul += self.bitrep(int(r))
+			self.mul += self.bitmult(int(r))
 			self.append_mulbits( int(r) )
 		return p * c
 
@@ -113,7 +113,7 @@ class OperationsCounter():
 		cpy = p.copy()
 		for ind, i in enumerate(cpy):
 			cpy[ind] = self.barrett_count(i,c)
-			#cpy[ind] = self.naive_modulus_count(i,c)
+			# cpy[ind] = self.naive_modulus_count(i,c)
 		return cpy
 		'''
 		self.mod += len( p )
@@ -127,7 +127,7 @@ class OperationsCounter():
 		# self.add += l
 		ret = p0 + p1
 		for r in ret:
-			self.add += self.bitrep(r)
+			self.add += self.bitadd(r)
 			self.append_addbits( r )
 		return p0 + p1
 
@@ -138,7 +138,7 @@ class OperationsCounter():
 		# self.add += l
 		ret = p0 - p1
 		for r in ret:
-			self.add += self.bitrep(r)
+			self.add += self.bitadd(r)
 			self.append_addbits( r )
 		return p0 - p1
 
@@ -153,8 +153,8 @@ class OperationsCounter():
 
 		ret = p0 * p1
 		for r in ret:
-			self.add += self.bitrep(r) #( (r).bit_length() // self.bitwidth ) + 1
-			self.mul += self.bitrep(r) #( (r).bit_length() // self.bitwidth ) + 1
+			self.add += self.bitadd(r) #( (r).bit_length() // self.bitwidth ) + 1
+			self.mul += self.bitmult(r) #( (r).bit_length() // self.bitwidth ) + 1
 			self.append_mulbits( int(r) )
 
 		return p0 * p1
@@ -194,28 +194,30 @@ class OperationsCounter():
 		# barrett modulus reductions
 		# self.mul += 2
 		# self.add += 2
-		self.mul += 2 * self.bitrep(x+y)
-		self.add += 2 * self.bitrep(x+y)
+		self.mul += self.bitmult(x+y)
+		self.add += 2 * self.bitadd(x+y)
 		self.mod += 1
 		return barrett(x,y) 
 
 	def toMont(self, mont, a):
 		# this will count the operations for converting
 		# into montgomery system
-		self.mul += self.bitrep(a*mont.r)
-		self.mul += 2 * self.bitrep(a*mont.n)
-		self.add += 2 * self.bitrep(a+mont.n)
+		self.mul += self.bitmult(a*mont.r)
+		self.mul += 2 * self.bitmult(a*mont.n)
+		self.add += 2 * self.bitadd(a+mont.n)
 		self.mod += 1
 		return mont.toMont( a )
 
 	def montMultiplication(self, mont, a, b):
 		# this will count operations for multiplying in 
 		# montgomery system
-		self.mul += ((a*b).bit_length() // self.bitwidth) + 1
-		self.mul += ((a*b*mont.k).bit_length() // self.bitwidth) + 1
-		self.mul += ((a*b*mont.k*mont.n).bit_length() // self.bitwidth) + 1
-		self.add += ((a*b+a*b*mont.k*mont.n).bit_length() // self.bitwidth) + 1
-		self.add += ((mont.n).bit_length() // self.bitwidth) + 1
+		self.mul += self.bitmult(a*b) # ((a*b).bit_length() // self.bitwidth) + 1
+		# self.mul += self.bitmult(a*b*mont.k) # ((a*b*mont.k).bit_length() // self.bitwidth) + 1
+		# self.mul += self.bitmult(a*b*mont.k*mont.n) 
+		# ((a*b*mont.k*mont.n).bit_length() // self.bitwidth) + 1
+		self.add += self.bitadd(a*b+a*b*mont.k*mont.n) 
+		# ((a*b+a*b*mont.k*mont.n).bit_length() // self.bitwidth) + 1
+		self.add += self.bitadd(mont.n) # ((mont.n).bit_length() // self.bitwidth) + 1
 		return mont.multiplication(a, b)
 
 	def fromMont(self, mont, a):
@@ -289,6 +291,12 @@ class OperationsCounter():
 
 	def bitrep(self, num):
 		return 1 + ( num.bit_length() // self.bitwidth )
+
+	def bitadd(self, num):
+		return self.bitrep(num)
+
+	def bitmult(self, num):
+		return (self.bitrep(num) ** 2)
 
 	# generate string to print information about current count
 	def __str__(self):

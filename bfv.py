@@ -37,9 +37,9 @@ def main():
 
 	return
 
-class LPR():
+class BFV():
 
-	def __init__(self,q=2**15,t=2**8,n=2**4,std=2,fn=None,h=64,security=128,bitwidth=32):
+	def __init__(self,q=2**15,t=2,n=2**4,std=2,fn=None,h=64,security=128,bitwidth=32):
 		"""
 		this init method will initialize the important variables
 		needed for this encryption scheme, including keys
