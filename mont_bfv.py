@@ -32,7 +32,8 @@ class Mont_BFV():
 		rlk - relinearization key for reducing ciphertext size after multiplication 
 		"""
 
-		self.mont = Montgomery( (q-1)**3, (q**3).bit_length() )
+		# self.mont = Montgomery( (q-1)**3, (q**3).bit_length() )
+		self.mont = Montgomery( (q-1), (q).bit_length() )
 
 		self.q = q
 		self.t = t
@@ -65,7 +66,7 @@ class Mont_BFV():
 		"""
 		self.gen_sk()
 		self.gen_pk()
-		self.gen_rlk()
+		# self.gen_rlk()
 		
 	def gen_sk(self):
 		"""

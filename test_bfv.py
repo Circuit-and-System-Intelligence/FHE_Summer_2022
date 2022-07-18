@@ -10,9 +10,10 @@ import pdb
 
 def main():
 	func = mont_test
-	generate_data()
-	#mont_test()
-	#main_test()
+	# generate_data()
+	mont_test()
+	print('-'*20)
+	main_test()
 	#test_multiplication()
 	#large_q()
 	#mult_enc()
@@ -48,22 +49,22 @@ def main_test():
 	# encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	es = BFV(q=2**22,n=2**5)
+	es = BFV(q=2**22,n=2**5,t=2,h=16,bitwidth=32)
 
 	# generate a plaintext
 	pt = np.random.randint(0,2)
 
 	# encrypt the plaintext
-	ct = lpr.encrypt(pt)
+	ct = es.encrypt(pt)
 
 	# decrypt the ciphertext
-	recovered_pt = lpr.decrypt(ct)
+	recovered_pt = es.decrypt(ct)[0]
 
 	# print the results
 	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
 	print(f'{pt==recovered_pt}')
 	print(' ')
-	lpr.print_counter_info()
+	es.print_counter_info()
 
 	return
 
@@ -425,7 +426,7 @@ def mont_test():
 	# this function will test montgomery encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = Mont_BFV(q=2**22,t=2,n=2**5,bitwidth=16)
+	lpr = Mont_BFV(q=2**22,t=2,n=2**5,h=16,bitwidth=32)
 
 	# generate a plaintext
 	pt = np.random.randint(0,2)
@@ -433,22 +434,20 @@ def mont_test():
 
 	# encrypt the plaintext
 	ct = lpr.encrypt(pt)
-	ctb = lpr.encrypt( b )
+	# ctb = lpr.encrypt( b )
 
-	ctmul = lpr.ctmult( ct, ctb )
-	mul = lpr.decrypt( ctmul )
+	# ctadd = lpr.ctadd( ct, ctb )
+	# add = lpr.decrypt( ctadd )[0]
 	#mul = pt^b
 
 	# decrypt the ciphertext
-	recovered_pt = lpr.decrypt(ct)
+	recovered_pt = lpr.decrypt(ct)[0]
 	# recovered_pt = pt
 
 	# print the results
 	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
 	print(f'{pt==recovered_pt}')
 	print(' ')
-	print(f'pt*b = mul: {pt}*{b}={mul}')
-	print(f'{mul == (pt*b)}')
 	lpr.print_counter_info()
 
 	return 1 if pt == recovered_pt else 0
