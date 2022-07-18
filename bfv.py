@@ -246,9 +246,6 @@ class BFV():
 		self.counters['add'] = OperationsCounter(bitwidth)
 		self.counters['mul'] = OperationsCounter(bitwidth)
 		self.counters['relin'] = OperationsCounter(bitwidth)
-
-		# these would be use in the different functions
-
 	
 	def encrypt(self,pt=0):
 		"""
