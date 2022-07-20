@@ -173,8 +173,8 @@ class OperationsCounter():
 
 		for i in range(dif):
 			for num in p1:
-				self.add += ( (num*p0[i]).bit_length() // self.bitwidth ) + 1
-				self.mul += ( (num*p0[i]).bit_length() // self.bitwidth ) + 1
+				self.add += self.bitadd(num) # ( (num*p0[i]).bit_length() // self.bitwidth ) + 1
+				self.mul += self.bitmult(num) # ( (num*p0[i]).bit_length() // self.bitwidth ) + 1
 
 		return p0 // p1
 
@@ -182,7 +182,7 @@ class OperationsCounter():
 	def naive_modulus_count(self, x, y):
 		# the naive_modulus would loop for x//y times, which
 		# will include one addition operation for each loop
-		self.add += int(abs( x // y )) * ( 1 + ( x.bit_length() // self.bitwidth) )
+		self.add += int(abs( x // y )) #* ( 1 + ( x.bit_length() // self.bitwidth) )
 		self.mod += 1
 		# if there was a cmp counter, it would be 1 + x//y
 		# self.comp += 1 + (x // y) 
