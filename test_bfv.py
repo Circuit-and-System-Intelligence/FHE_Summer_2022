@@ -1,5 +1,6 @@
 from bfv import BFV
 from mont_bfv import Mont_BFV
+from pres_bfv import pBFV
 from poly import Poly
 import numpy as np
 import sys
@@ -11,8 +12,8 @@ import pdb
 def main():
 	func = mont_test
 	generate_data()
-	#mont_test()
-	#main_test()
+	# mont_test()
+	# main_test()
 	#test_multiplication()
 	#large_q()
 	#mult_enc()
@@ -48,22 +49,22 @@ def main_test():
 	# encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	es = BFV(q=2**22,n=2**5)
+	es = BFV(q=2**22,n=2**5,t=2,h=16,bitwidth=32)
 
 	# generate a plaintext
 	pt = np.random.randint(0,2)
 
 	# encrypt the plaintext
-	ct = lpr.encrypt(pt)
+	ct = es.encrypt(pt)
 
 	# decrypt the ciphertext
-	recovered_pt = lpr.decrypt(ct)
+	recovered_pt = es.decrypt(ct)[0]
 
 	# print the results
 	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
 	print(f'{pt==recovered_pt}')
 	print(' ')
-	lpr.print_counter_info()
+	es.print_counter_info()
 
 	return
 
@@ -378,18 +379,22 @@ def generate_data():
 			for q in range(qmin,qmax,qstep):
 				print(f'q={q} d={d}')
 				add_list = []
+				mul_list = []
 				add_max = 0
 				add_min = 2 ** 256
 				print('here')
-				for j in range(25):
-					lpr = BFV(t=2,q=2**q,n=2**d,std=2.0,h=16)
+				for j in range(10):
+					lpr = pBFV(t=2,q=2**q,n=2**d,std=2.0,h=16)
 					x = np.random.randint(0,2)
 					y = np.random.randint(0,2)
 					ctx = lpr.encrypt(x)
 					cty = lpr.encrypt(y)
-					ctz = lpr.ctadd(ctx,cty)
+					ctz = lpr.ctmult(ctx,cty)
 					z = lpr.decrypt(ctz)[0]
-					assert z == x^y
+					assert z == x*y
+
+					lpr.print_counter_info()
+					return
 
 					enc_add = lpr.counters['enc'].add
 					enc_mul = lpr.counters['enc'].mul
@@ -406,16 +411,19 @@ def generate_data():
 					add_count = enc_add+dec_add+key_add+add_add
 					mul_count = enc_mul+dec_mul+key_mul+add_mul
 					add_list.append( add_count )
+					mul_list.append( mul_count )
 
 					if add_count > add_max:
 						add_max = add_count
 					if add_count < add_min:
 						add_min = add_count
 
-				add_avg = sum( add_list ) / 100
+				add_avg = sum( add_list ) / 10
+				mul_avg = sum( mul_list ) / 10
 				add_std = np.std( add_list )
+				mul_std = np.std( mul_list )
 
-				f.write(f'{q}, {d}, {add_avg}, {add_std}, {add_max}, {add_min}\n')
+				f.write(f'{q}, {d}, {add_avg}, {add_std}, {mul_avg}, {mul_std}\n')
 				# f.write(f'{q}, {d}, {enc_add+dec_add+key_add+add_add}, {enc_mul+dec_mul+key_mul+add_mul}\n')
 				# print(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul}')
 				# f.write(f'{q},{d},{enc_add},{enc_mul},{dec_add},{dec_mul},{key_add},{key_mul},{add_add},{add_mul}\n')
@@ -425,7 +433,7 @@ def mont_test():
 	# this function will test montgomery encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	lpr = Mont_BFV(q=2**22,t=2,n=2**5,bitwidth=16)
+	lpr = Mont_BFV(q=2**22,t=2,n=2**5,h=16,bitwidth=32)
 
 	# generate a plaintext
 	pt = np.random.randint(0,2)
@@ -433,22 +441,20 @@ def mont_test():
 
 	# encrypt the plaintext
 	ct = lpr.encrypt(pt)
-	ctb = lpr.encrypt( b )
+	# ctb = lpr.encrypt( b )
 
-	ctmul = lpr.ctmult( ct, ctb )
-	mul = lpr.decrypt( ctmul )
+	# ctadd = lpr.ctadd( ct, ctb )
+	# add = lpr.decrypt( ctadd )[0]
 	#mul = pt^b
 
 	# decrypt the ciphertext
-	recovered_pt = lpr.decrypt(ct)
+	recovered_pt = lpr.decrypt(ct)[0]
 	# recovered_pt = pt
 
 	# print the results
 	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
 	print(f'{pt==recovered_pt}')
 	print(' ')
-	print(f'pt*b = mul: {pt}*{b}={mul}')
-	print(f'{mul == (pt*b)}')
 	lpr.print_counter_info()
 
 	return 1 if pt == recovered_pt else 0
