@@ -26,6 +26,8 @@ class Poly(object):
 	def __setitem__(self, key, value):
 		# update the value of the term with 
 		# python's [] operator
+		while key >= len( self ):
+			self.poly.append( 0 )
 		self.poly[key] = value
 		return
 

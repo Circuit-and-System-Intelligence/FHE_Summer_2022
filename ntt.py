@@ -4,17 +4,20 @@
 # and convolution multiplication
 
 from poly import Poly
+import pickle as pkl
+from random import randint
 
 class NTT(object):
 
-	def __init__(self,n):
+	def __init__(self,n,M=2**5):
 		# define the size of the length of vector
 		self.n = n 
-		self.find_working_mod(649)
+		self.find_working_mod(M)
 		self.find_generator()
 		self.calc_prim_root()
 
 		self.invn = self.extended_euclidean( self.n, self.N )
+		self.invpsi = self.extended_euclidean( self.psi, self.N )
 		self.invw = self.extended_euclidean( self.w, self.N )
 
 	def find_working_mod(self, M):
@@ -22,21 +25,71 @@ class NTT(object):
 		# class. This will be a prime number
 		# greater or equal to M
 
-		self.k = 168
+		# load prime numbers
+		primes = []
+		with open("prime.pickle",'rb') as f:
+			primes = pkl.load( f )
+
+		for ind, p in enumerate(primes):
+			if p >= M:
+				if (p-1)%(2*self.n) == 0:
+					self.k = (p-1)//(2*self.n)
+					self.N = p
+					return
+
+		raise AttributeError("No Prime for Modulus Found")
+		self.k = 84
 		self.N = 673
+
+		# self.N = 536608769
 
 	def find_generator(self):
 		# this will find a generator which
 		# would help calculate a primitive 
 		# root of unity
-		self.g = 6
+		
+		# load prime numbers
+		primes = []
+		with open("prime.pickle",'rb') as f:
+			primes = pkl.load( f )
+
+		# find factors of N-1
+		factors = []
+		sqrt_N = (self.N-1) ** 0.5
+		for p in primes:
+			if p > (sqrt_N):
+				break
+
+			if (self.N-1) % p == 0:
+				factors.append( p )
+
+		# find a generator
+		for i in range(1,self.N-1):
+			skip = False
+
+			for f in factors:
+				a = i ** ((self.N-1)//f)
+				assert ((self.N-1)//f) == ((self.N-1)/f)
+				
+				if a % self.N == 1:
+					skip = True
+
+			if skip:
+				continue
+
+			self.g = i
+			return
+			# print( self.g )
+			
+		self.g = 653
+		return
 
 	def calc_prim_root(self):
 		# this will calculate the primitive
 		# root of unity needed to convert
 		# into NTT
-		self.w = (self.g ** self.k) % self.N
-		self.w = 326
+		self.psi = (self.g ** self.k) % self.N
+		self.w = (self.g ** (self.k*2)) % self.N
 
 	def extended_euclidean(self, a, n):
 		# this function will calculate the inverse of a mod n
@@ -59,6 +112,17 @@ class NTT(object):
 
 		return t
 
+	def inverse_mod(self, a, n):
+		# this function will find the inverse of a such
+		# that t*a === 1 mod n
+		# 
+		# n must be a prime number
+		
+		p = n
+
+		t = (a**(p-2))%p
+		return t
+
 	def merge_NTT(self, p: Poly):
 		# this will convert p into NTT
 
@@ -68,35 +132,26 @@ class NTT(object):
 		psi = [0]*self.n
 
 		for i in range(self.n):
-			psi[i] = self.w ** self.bitrev( i )
+			# q=536608769, n=2048
+			# psi[i] = (284166 ** self.bitrev( i )) % self.N
+
+			# q=673, n=8
+			# psi[i] = (8 ** self.bitrev( i )) % self.N
+
+			psi[i] = (self.psi ** self.bitrev(i)) % self.N
 
 		a = p.copy()
 		# ret = Poly( ret.poly + ([0]*(self.n-len(p))) )
-
-		'''
-		m = 2
-		while m <= self.n:
-			wm = self.w ** ( self.n // m )
-			w = 1
-			for j in range(m//2):
-				for k in range(0,self.n,m):
-					t = w * ret[k+j+(m//2)]
-					u = ret[k+j]
-					ret[k+j] = u + t
-					ret[k+j+(m//2)] = u - t 
-				w = w * wm
-			m = m * 2
-		'''
 
 		m = 1
 		k = self.n // 2
 		while m < self.n:
 			for i in range(m):
 				jFirst = 2 * i * k
-				jLast = jFirst + k - 1
+				jLast = jFirst + k
 				# wi = psi[ self.bitrev(m+i) ]
 				wi = psi[ m+i ]
-				for j in range(jFirst,jLast+1):
+				for j in range(jFirst,jLast):
 					# wrev = ( (self.w ** self.bitrev(m+i)) % self.N )
 					l = j + k
 					t = a[j]
@@ -107,15 +162,52 @@ class NTT(object):
 			m = m * 2
 			k = k//2
 
-		'''
-		for i in range(self.n):
-			for j in range(self.n):
-				ret[i] += p[j] * (self.w ** (i*j))
-
-			ret[i] = ret[i] % self.N
-		'''
-
 		return a 
+
+	def merge_iNTT(self, p: Poly):
+		# convert inverse NTT
+
+		if len(p) > self.n:
+			raise ValueError("Input too large for iNTT")
+
+		invpsi = [0]*self.n
+
+		for i in range(self.n):
+			# q=536608769, n=2048
+			# invpsi[i] = (208001377 ** self.bitrev(i)) % self.N
+
+			# q=673, n=8
+			# invpsi[i] = ( 589 ** self.bitrev(i)) % self.N
+
+			invpsi[i] = (self.invpsi ** self.bitrev(i)) % self.N
+
+		# ret = Poly([0]*self.n)
+		a = p.copy()
+		# a = Poly( a.poly + ([0]*(self.n-len(p))) )
+
+		m = self.n // 2
+		k = 1
+		while m >= 1:
+			for i in range(m):
+				jFirst = 2 * i * k
+				jLast = jFirst + k
+				# wi = psi[ self.bitrev(m+i) ]
+				wi = invpsi[ m+i ]
+				for j in range(jFirst,jLast):
+					l = j + k
+					t = a[j]
+					u = a[l]
+					a[j] = ( t + u ) % self.N
+					a[l] = (( t - u ) * wi) % self.N
+			
+			m = m // 2
+			k = k * 2
+
+		for i in range(self.n):
+			a[i] = a[i] * self.invn
+			a[i] = a[i] % self.N
+
+		return a
 
 	def NTT(self, p: Poly):
 		# this will convert p to NTT
@@ -132,50 +224,6 @@ class NTT(object):
 			ret[i] = ret[i] % self.N
 
 		return ret
-
-	def merge_iNTT(self, p: Poly):
-		# convert inverse NTT
-
-		if len(p) > self.n:
-			raise ValueError("Input too large for iNTT")
-
-		psi = [0]*self.n
-
-		for i in range(self.n):
-			psi[i] = self.invw ** self.bitrev(i)
-
-		# ret = Poly([0]*self.n)
-		a = p.copy()
-		a = Poly( a.poly + ([0]*(self.n-len(p))) )
-
-		m = self.n // 2
-		k = 1
-		while m > 1:
-			for i in range(m):
-				jFirst = 2 * i * k
-				jLast = jFirst + k - 1
-				# wi = psi[ self.bitrev(m+i) ]
-				wi = psi[ m+i ]
-				for j in range(jFirst,jLast+1):
-					l = j + k
-					t = a[j]
-					u = a[l]
-					a[j] = ( t + u ) % self.N
-					a[l] = (( t - u ) * wi) % self.N
-			
-			m = m // 2
-			k = k * 2
-
-		'''
-		for i in range(self.n):
-			for j in range(self.n):
-				ret[i] += p[j] * (self.invw ** (i*j))
-
-			ret[i] = ret[i] * self.invn
-			ret[i] = ret[i] % self.N
-		'''
-
-		return a
 
 	def iNTT(self, p: Poly):
 		# convert inverse NTT
@@ -217,13 +265,26 @@ class NTT(object):
 		return revk
 
 def main():
-	ntt = NTT(8)
+	sz = 2**10
+	ntt = NTT(sz,2**20)
 
 	# a = Poly([6,0,10,7])
-	a = Poly([1,2,3,4,5,6,7,8])
-	# b = Poly([2,4,1,10])
+
+	arr = []
+	brr = []
+	for i in range(sz):
+		arr.append( randint(0,ntt.N) )
+		brr.append( randint(0,ntt.N) )
+
+	a = Poly([1,2,3,4,5,6,7,8]+([0]*2040))
+	b = Poly([1,1,1,1,1,1,1,1]+([0]*2039)+[4])
+	a = Poly( arr )
+	b = Poly( brr )
+	# a = Poly([1,2,3,4,5,6,7,8])
+
+
+	# b = Poly([2,1,3,4,1,3,5,2])
 	print(f'a: {a}')
-	# print(f'b: {b}')
 	print(' ')
 
 	pre_a = a.copy()
@@ -232,66 +293,229 @@ def main():
 	pre_a[1] *= (ntt.w) ** 1
 	pre_a[2] *= (ntt.w) ** 2
 	pre_a[3] *= (ntt.w) ** 3
-
-	pre_a = pre_a % ntt.N
+	pre_a[4] *= (ntt.w) ** 4
+	pre_a[5] *= (ntt.w) ** 5
+	pre_a[6] *= (ntt.w) ** 6
+	pre_a[7] *= (ntt.w) ** 7
 	'''
+	pre_a = pre_a % ntt.N
 
-	n_a = ntt.NTT( pre_a )
+	# n_a = ntt.NTT( pre_a )
 	merge_a = ntt.merge_NTT( a )
+	merge_b = ntt.merge_NTT( b )
+	merge_c = ntt.conv_mult( merge_a, merge_b )
 	# nb = ntt.NTT( b )
 
-	print(f'n_a:     {n_a}')
+	# print(f'n_a:     {n_a}')
 	print(f'merge_a: {merge_a}')
-	# print(f'nb: {nb}')
 	print(' ')
 
-	ra = ntt.iNTT( n_a )
+	# ra = ntt.iNTT( n_a )
 	mra = ntt.merge_iNTT( merge_a )
+	mrc = ntt.merge_iNTT( merge_c )
 
-	# rb = ntt.iNTT( nb )
-
-	print(f'ra: {ra}')
+	# print(f'ra: {ra}')
 	print(f'mra: {mra}')
-	# print(f'rb: {rb}')
+	# print(f'mrc: {mrc}')
+
+	print(f'mra==a: {mra==a}')
+
+	# polynomial multiplication
+	c = a * b
+	fn = Poly( [1] + ([0]*(sz-1)) + [1] )
+	quo,c = c // fn
+	c = c % ntt.N
+	# print(c)
+
+	print(f'mrc==c: {mrc==c}')
+	
+
+def test_addition():
+	sz = 2**5
+	ntt = NTT(sz,2**15)
+
+	# a = Poly([6,0,10,7])
+
+	arr = []
+	brr = []
+	for i in range(sz):
+		arr.append( randint(0,ntt.N) )
+		brr.append( randint(0,ntt.N) )
+
+	a = Poly( arr )
+	b = Poly( brr )
+
+	merge_a = ntt.merge_NTT( a )
+	merge_b = ntt.merge_NTT( b )
+
+	merge_c = merge_a + merge_b
+
+	mc = ntt.merge_iNTT( merge_c )
+
+	c = a + b
+	c = c % ntt.N
+
+	print(f'mc: {mc}')
+	print(f'c:  {c}')
+	print(f'c==mc: {c==mc}')
 
 def mult():
-	ntt = NTT(8)
+	sz = 2**2
+	ntt = NTT(sz,2**8)
 
-	# a = Poly([6,10,3,9])
-	# b = Poly([4,4,5,8])
-	# a = Poly([12,53,81,17])
-	# b = Poly([14,8,23,10])
-	a = Poly([13,15,19,20])
-	b = Poly([4,8,10,11])
+	arr = []
+	brr = []
+	for i in range(sz):
+		arr.append( randint(0,ntt.N//2) )
+		brr.append( randint(0,ntt.N) )
+
+	a = Poly( arr )
+	a = a * 2
+	b = Poly( brr )
+
+	merge_a = ntt.merge_NTT( a )
+
+	half = ntt.extended_euclidean( 2, ntt.N )
+
+	merge_c = merge_a * half
+	merge_c = merge_c % ntt.N
+
+	mc = ntt.merge_iNTT( merge_c )
+
+	ma = a // 2
+	ma = ma % ntt.N
+
 	print(f'a: {a}')
-	print(f'b: {b}')
-	print(' ')
-	ai = Poly( a.poly + ( -1*a ).poly )
-	bi = Poly( b.poly + ( -1*b ).poly )
+	print(f'ma: {ma}')
+	print(f'mc: {mc}')
+	print(f'ma==mc: {ma==mc}')
 
-	na = ntt.NTT( ai )
-	nb = ntt.NTT( bi )
 
-	nc = ntt.conv_mult( na, nb )
+def ntt_circuit():
+	# this function will act as a translation
+	# of the circuit defined in paper
 
-	c = ntt.iNTT( nc )
+	# x = [1,2,3,4,5,6,7,8]
+	x = [1,1,1,1,2,2,2,2]
 
-	c = c // 2
+	w = 64
+	phi = 8
+	invw = 326
+	invphi = 589
 
-	print( c )
+	q = 673
 
-	c = Poly(c.poly[0:4])
 
-	print(f'c: {c}')
+	# stage 0
+	for i in range(4,8):
+		x[i] *= (phi ** 4)
+		x[i] = x[i] % q
 
-	x = a * b
-	quo,x = x // Poly([1,0,0,0,1])
-	x = x % ntt.N
-	print(f'x: {x}')
+	y = x.copy()
+	for i in range(0,4):
+		x[i] = y[i] + y[i+4]
+		x[i] = x[i] % q
 
-	# print(f'x: {x}')
+	for i in range(0,4):
+		x[i+4] = y[i+4] - y[i]
+		x[i+4] = x[i+4] % q
 
+	# stage 1
+	for i in range(2):
+		x[i+2] *= (phi ** 2)
+		x[i+6] *= (phi ** 2) * (w ** 2)
+		x[i+2] = x[i+2] % q
+		x[i+6] = x[i+6] % q
+
+	y = x.copy()
+
+	for i in range(2):
+		x[i]   = y[i] + y[i+2]
+		x[i+2] = y[i+2] - y[i]
+		x[i+4] = y[i+6] + y[i+4]
+		x[i+6] = y[i+6] - y[i+4]
+		x[i]   = x[i] % q
+		x[i+2] = x[i+2] % q
+		x[i+4] = x[i+4] % q
+		x[i+6] = x[i+6] % q
+
+	# stage 2
+	x[1] *= (phi)*(w**0)
+	x[3] *= (phi)*(w**2)
+	x[5] *= (phi)*(w**1)
+	x[7] *= (phi)*(w**3)
+	x[1] = x[1] % q
+	x[3] = x[3] % q
+	x[5] = x[5] % q
+	x[7] = x[7] % q
+
+	y = x.copy()
+	
+	for i in range(0,8,2):
+		x[i] = y[i] + y[i+1]
+		x[i+1] = y[i+1] - x[i]
+		x[i] = x[i] % q
+		x[i+1] = x[i+1] % q
+	
+	print(f'after ntt: {x}')
+
+	y = x.copy()
+	# stage 0
+	for i in range(0,8,2):
+		x[i] = y[i] + y[i+1]
+		x[i+1] = y[i+1] - x[i]
+		x[i] = x[i] % q
+		x[i+1] = x[i+1] % q
+
+	x[1] *= (invphi)*(invw**0)
+	x[3] *= (invphi)*(invw**2)
+	x[5] *= (invphi)*(invw**1)
+	x[7] *= (invphi)*(invw**3)
+	x[1] = x[1] % q
+	x[3] = x[3] % q
+	x[5] = x[5] % q
+	x[7] = x[7] % q
+
+	# stage 1
+
+	y = x.copy()
+	for i in range(2):
+		x[i]   = y[i] + y[i+2]
+		x[i+2] = y[i+2] - y[i]
+		x[i+4] = y[i+6] + y[i+4]
+		x[i+6] = y[i+6] - y[i+4]
+		x[i]   = x[i] % q
+		x[i+2] = x[i+2] % q
+		x[i+4] = x[i+4] % q
+		x[i+6] = x[i+6] % q
+	
+	for i in range(2):
+		x[i+2] *= (invphi ** 2)
+		x[i+6] *= (invphi ** 2) * (invw ** 2)
+		x[i+2] = x[i+2] % q
+		x[i+6] = x[i+6] % q
+	
+	# stage 2
+
+	y = x.copy()
+	for i in range(0,4):
+		x[i] = y[i] + y[i+4]
+		x[i] = x[i] % q
+
+	for i in range(0,4):
+		x[i+4] = y[i+4] - y[i]
+		x[i+4] = x[i+4] % q
+
+	for i in range(4,8):
+		x[i] *= (invphi ** 4)
+		x[i] = x[i] % q
+
+	print(f'after intt: {x}')
 
 if __name__ == '__main__':
-	main()
-	# mult()
+	# main()
+	# test_addition()
+	# ntt_circuit()
+	mult()
+
+	pass
