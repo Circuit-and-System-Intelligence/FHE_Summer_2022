@@ -249,6 +249,19 @@ class OperationsCounter():
 
 		return ret
 		
+	def dotProduct(self, a, b):
+		# this will perform a dot product on two 
+		# polynomials, also known as coefficient-wise
+		# multplication
+		sz = max(len(a),len(b))
+		c = Poly([0]*sz)
+		
+		for i in range(sz):
+			c[i] = a[i] * b[i]
+			self.mul += self.bitmult(c[i])
+
+		return c
+
 	def append_addbits(self, num):
 		# this function will add the bitlength
 		# of num to the addbits dict
