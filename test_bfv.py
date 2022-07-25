@@ -465,20 +465,24 @@ def ntt_test():
 	# this function will test montgomery encryption scheme
 	
 	# q= 2**15, t= 2**8, n=2**4
-	# lpr = BFV(q=2**20,t=2,n=2**10,h=64,bitwidth=32)
-	lpr = NTT_BFV(q=2**20,t=2,n=2**10,h=64,bitwidth=32)
+	# lpr = BFV(q=2**12,t=2,n=2**5,h=4,bitwidth=32)
+	# lpr = NTT_BFV(q=4289,t=2,n=2**5,h=4,bitwidth=32)
+
+	# lpr = NTT_BFV(q=40961,t=2,n=2**10,h=64,bitwidth=32)
+	lpr = BFV(q=2**15,t=2,n=2**10,h=64,bitwidth=32)
 
 	# generate a plaintext
 	pt = np.random.randint(0,2)
-	b = np.random.randint(0,2)
+	# b = np.random.randint(0,2)
 	print(f'pt: {pt}')
-	print(f'b:  {b}')
+	# print(f'b:  {b}')
 
 	# encrypt the plaintext
 	ct = lpr.encrypt(pt)
-	ctb = lpr.encrypt( b )
+	# ctb = lpr.encrypt( b )
 
-	ctc = lpr.ctmult( ct, ctb )
+	# ctc = lpr.ctmult( ct, ctb )
+	ctc = ct
 
 	# decrypt the ciphertext
 	print( lpr.decrypt(ctc) )
@@ -488,12 +492,12 @@ def ntt_test():
 	'''
 	ctc = lpr.ctadd( ct, ctb )
 	c = lpr.decrypt( ctc )[0]
-	print(f'pt+b=c: {c==pt^b}')
+	print(f'pt*b=c: {c==pt^b}')
 	'''
 
 	# print the results
 	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
-	print(f'{pt*b==recovered_pt}')
+	print(f'{pt==recovered_pt}')
 	print(' ')
 	lpr.print_counter_info()
 
