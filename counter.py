@@ -262,6 +262,84 @@ class OperationsCounter():
 
 		return c
 
+	def merge_NTT(self, ntt, p):
+		# this function will count the operations
+		# for a merge_NTT
+
+		a = p.copy()
+		
+		# precomputed
+		psi = [0]*ntt.n
+		for i in range(ntt.n):
+			psi[i] = (ntt.psi ** ntt.bitrev(i)) % ntt.N
+
+		
+		m = 1
+		k = ntt.n // 2
+		
+		while m < ntt.n:
+			for i in range(m):
+				jFirst = 2 * i * k
+				jLast = jFirst + k
+				self.mul = self.bitmult(2 * i * k)
+				self.add = self.bitadd(jFirst + k)
+
+				wi = psi[ m+i ]
+				for j in range(jFirst,jLast):
+					# wrev = ( (self.w ** self.bitrev(m+i)) % self.N )
+					l = self.num_add(j, k)
+					t = a[j]
+					u = self.num_mul(a[l], wi)
+
+					a[j] = self.barrett_count((t + u), ntt.N)
+					a[l] = self.barrett_count((t - u), ntt.N)
+					self.num_add(t,u)
+					self.num_add(t,u)
+
+			m = self.num_mul(m, 2)
+			k = self.floor_div(k, 2)
+
+		return ntt.merge_NTT( p )
+
+	def merge_iNTT(self, ntt, p):
+		# this function will count the operations
+		# for a merge_iNTT
+
+		a = p.copy()
+		
+		# precomputed
+		invpsi = [0]*ntt.n
+		for i in range(ntt.n):
+			invpsi[i] = (ntt.invpsi ** ntt.bitrev(i)) % ntt.N
+
+		m = ntt.n // 2
+		k = 1
+		
+		while m >= 1:
+			for i in range(m):
+				jFirst = 2 * i * k
+				jLast = jFirst + k
+				self.mul = self.bitmult(2 * i * k)
+				self.add = self.bitadd(jFirst + k)
+
+				wi = invpsi[ m+i ]
+				for j in range(jFirst,jLast):
+					# wrev = ( (self.w ** self.bitrev(m+i)) % self.N )
+					l = self.num_add(j, k)
+					t = a[j]
+					u = a[l]
+
+					a[j] = self.barrett_count((t + u), ntt.N)
+					a[l] = self.barrett_count((t - u)*wi, ntt.N)
+					self.num_add(t,u)
+					self.num_add(t,u)
+					self.num_mul(t-u, wi)
+
+			m = self.floor_div(m, 2)
+			k = self.num_mul(k, 2)
+
+		return ntt.merge_iNTT( p )
+
 	def append_addbits(self, num):
 		# this function will add the bitlength
 		# of num to the addbits dict

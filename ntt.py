@@ -12,11 +12,16 @@ class NTT(object):
 	def __init__(self,n,M=2**5):
 		# define the size of the length of vector
 		self.n = n 
-		self.find_working_mod(M)
+		self.N = M
+		# self.find_working_mod(M)
+		self.invn = self.extended_euclidean( self.n, self.N )
+
+	def generate_params(self):
+		# this function will generate working
+		# parameters for NTT
 		self.find_generator()
 		self.calc_prim_root()
 
-		self.invn = self.extended_euclidean( self.n, self.N )
 		self.invpsi = self.extended_euclidean( self.psi, self.N )
 		self.invw = self.extended_euclidean( self.w, self.N )
 
@@ -27,9 +32,10 @@ class NTT(object):
 
 		# load prime numbers
 		primes = []
-		with open("prime.pickle",'rb') as f:
+		with open("./bin/prime.pickle",'rb') as f:
 			primes = pkl.load( f )
 
+		primes.append(536608769)
 		for ind, p in enumerate(primes):
 			if p >= M:
 				if (p-1)%(2*self.n) == 0:
@@ -50,7 +56,7 @@ class NTT(object):
 		
 		# load prime numbers
 		primes = []
-		with open("prime.pickle",'rb') as f:
+		with open("./bin/prime.pickle",'rb') as f:
 			primes = pkl.load( f )
 
 		# find factors of N-1
