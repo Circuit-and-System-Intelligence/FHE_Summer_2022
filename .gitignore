@@ -6,3 +6,6 @@ __pycache__
 
 # ignore data folder
 data
+
+# ignore binary data
+bin
