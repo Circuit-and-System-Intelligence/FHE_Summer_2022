@@ -254,6 +254,8 @@ class CKKS():
 		quo,m = oc.poly_div_poly( m, self.fn )
 		m = oc.poly_add_poly( m, ct[0][0] )
 
+		m = oc.poly_mod( m, q )
+
 		m = self.ring_mod( m, q )
 
 		return m
@@ -302,9 +304,13 @@ class CKKS():
 		# this will return a ciphertext polynomial
 		# of the addition of two ciphertexts
 
+		# create counter object
+		oc = self.counters['add']
+
 		# calculate q ( q[l] )	
 		q = (self.p ** ct0[1] ) * self.q0 #q = (self.delta ** ct0[1] ) * self.q0
 
+		'''
 		c0 = ct0[0][0] + ct1[0][0]
 		#c0 = self.ring_mod( c0, q )
 		c0 = c0 % q
@@ -312,6 +318,12 @@ class CKKS():
 		c1 = ct0[0][1] + ct1[0][1]
 		#c1 = self.ring_mod( c1, q )
 		c1 = c1 % q
+		'''
+		c0 = oc.poly_add_poly( ct0[0][0], ct1[0][0] )
+		c0 = oc.poly_mod( c0, q )
+
+		c1 = oc.poly_add_poly( ct0[0][1], ct1[0][1] )
+		c1 = oc.poly_mod( c1, q )
 
 		# calculate new v
 		v = ct0[2] + ct1[2]
@@ -324,6 +336,9 @@ class CKKS():
 	def ct_mult(self, ct0, ct1):
 		# this will return a ciphertext polynomial
 		# of multiplied ciphertexts
+
+		# create counter object
+		oc = self.counters['mul']
 
 		# calculate q ( q[l] )	
 		q = (self.p ** ct0[1] ) * self.q0 #q = (self.delta ** ct0[1] ) * self.q0

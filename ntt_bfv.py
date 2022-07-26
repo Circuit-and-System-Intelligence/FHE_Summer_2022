@@ -7,6 +7,7 @@ from numpy.polynomial import polynomial as p
 import random
 import sys
 from ntt import NTT
+from rns import RNS
 
 import pdb
 
@@ -59,10 +60,22 @@ class NTT_BFV():
 		"""
 
 		self.ntt = NTT(n,q)
+		
+		'''
+		# n=2**5, q=2**15
 		self.ntt.psi = 3213
 		self.ntt.invpsi = 3145
+		'''
+
+		'''
+		# n=2**10, q=2**15
 		self.ntt.psi = 20237
 		self.ntt.invpsi = 16233
+		'''
+
+		# n=2**10, q=2**10
+		self.ntt.psi = 1945
+		self.ntt.invpsi = 4050
 
 		self.q = self.ntt.N
 		self.t = t
@@ -195,12 +208,18 @@ class NTT_BFV():
 		self.rlk_ntt.invpsi = 366977299
 		'''
 
+		# self.rlk_ntt = [ NTT(self.n,1153), NTT(self.n,1217), NTT(self.n,1409), NTT(self.n,1601) ] 
+
+		# self.rlk_rns = RNS( [1153, 1217, 1409, 1601] )
+		# P = self.rlk_rns.P
+
 		# set counter object for keys
 		oc = self.counters['key']
 
 		# define p for relin2
 		# bigger p means less noise (I think)
 		self.p = self.rlk_ntt.N // self.ntt.N
+		# self.p = P // self.ntt.N
 		self.p += 1
 
 		# hardcode k for now

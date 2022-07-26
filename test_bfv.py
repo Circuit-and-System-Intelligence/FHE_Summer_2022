@@ -464,12 +464,17 @@ def mont_test():
 def ntt_test():
 	# this function will test montgomery encryption scheme
 	
+	'''
 	# q= 2**15, t= 2**8, n=2**4
 	# lpr = BFV(q=2**12,t=2,n=2**5,h=4,bitwidth=32)
 	# lpr = NTT_BFV(q=4289,t=2,n=2**5,h=4,bitwidth=32)
 
 	# lpr = NTT_BFV(q=40961,t=2,n=2**10,h=64,bitwidth=32)
-	lpr = BFV(q=2**15,t=2,n=2**10,h=64,bitwidth=32)
+	# lpr = BFV(q=2**10,t=2,n=2**10,h=64,bitwidth=32)
+	'''
+	
+	# lpr = NTT_BFV(q=12289,t=2,n=2**10,h=64,bitwidth=32)
+	lpr = BFV(q=2**15,t=2,n=2**6,h=4,bitwidth=32)
 
 	# generate a plaintext
 	pt = np.random.randint(0,2)
