@@ -185,92 +185,54 @@ class NTT_BFV():
 		Generate a relinearization key for ciphertext multiplication
 
 		----- Random Polynomials -----
-		a <- Uniformat Distribution over q*p
-		e <- Normal Distribution with (mean = 0, standard deviation = sigma_prime )
+		ai <- Uniformat Distribution over q
+		ei <- Normal Distribution with (mean = 0, standard deviation = self.std )
 
 		----- Calculation -----
-		p = q ** 3
-		sigma_prime = (alpha ** (1-sqrt(k))) * (q ** (k-sqrt(k))) * (B ** sqrt(k))
-		b = -(a*sk + e) + p*(sk^2)
+		T = 2
+		bi = -(ai*sk + ei) + (T^i)*(sk^2)
 
 		----- Result -----
-		rlk = (b , a)
+		rlk = [(bi , ai)]
 
 		"""
-
-		# create new ntt instance
-		self.rlk_ntt = NTT(self.n,18395777)
-		self.rlk_ntt.psi = 2923173
-		self.rlk_ntt.invpsi = 1254665
-		'''
-		self.rlk_ntt = NTT(self.n,1204731713)
-		self.rlk_ntt.psi = 269672302
-		self.rlk_ntt.invpsi = 366977299
-		'''
-
-		# self.rlk_ntt = [ NTT(self.n,1153), NTT(self.n,1217), NTT(self.n,1409), NTT(self.n,1601) ] 
-
-		# self.rlk_rns = RNS( [1153, 1217, 1409, 1601] )
-		# P = self.rlk_rns.P
-
 		# set counter object for keys
 		oc = self.counters['key']
 
-		# define p for relin2
-		# bigger p means less noise (I think)
-		self.p = self.rlk_ntt.N // self.ntt.N
-		# self.p = P // self.ntt.N
-		self.p += 1
+		# define T, set T == 2
+		self.T = 2
+		T = self.T
 
-		# hardcode k for now
-		k = 2
+		# define l, l = logT(q)
+		self.l = int(np.log(self.q)//np.log(T))+1
+		l = self.l
 
-		sqrt_k = np.sqrt(k)
+		# this will hold different masked versions
+		# of the keys with T^i for i=[0,l)
+		self.rlk_V1 = []
 
-		# hardcode B for now
-		# B = 20
-		B = 9.2 * self.std
+		for i in range(l):
+			ei = self.gen_normal_poly()
+			ai = self.gen_uniform_poly()
 
-		# ALPHA is a constant based on security parameter
-		ALPHA = 3.758
-		
-		try: 
-			sigma_prime = ( ALPHA ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (B ** sqrt_k) / 9.2 
-		except OverflowError:	
-			sqrt_k = int(sqrt_k)
-			sigma_prime = int(int( 4 ** (1-sqrt_k) ) * ( self.q ** (k-sqrt_k) ) * (int(B) ** sqrt_k) // 9) 
+			# T^i * sk^2
+			Ti = T ** i
+			ss = oc.dotProduct(self.sk, self.sk)
+			ss = self.ntt.merge_iNTT( ss )
+			ss = ss * Ti
+			ss = ss % self.q
+			ss = self.ntt.merge_NTT( ss )
 
-		e = self.gen_normal_poly(std=sigma_prime)
-		a = self.gen_uniform_poly(q=self.q*self.p)
-		e = self.ntt.merge_iNTT( e )
-		a = self.ntt.merge_iNTT( a )
-		sk = self.ntt.merge_iNTT( self.sk )
+			# -(ai*sk + ei)
+			b = oc.dotProduct(ai, self.sk)
+			b = b + ei
+			b = b * -1
 
-		e = Poly([0]*self.n)
-
-		e = self.rlk_ntt.merge_NTT( e )
-		a = self.rlk_ntt.merge_NTT( a )
-		sk = self.rlk_ntt.merge_NTT( sk )
-
-		# p * (sk^2)
-		ss = oc.dotProduct(sk, sk)
-		ss = oc.poly_mul_num( ss, self.p ) 
-		ss = oc.poly_mod( ss, self.rlk_ntt.N )
-
-		# -(a*s + e)
-		b = oc.dotProduct(a,sk) 
-		b = oc.poly_add_poly( b, e ) 
-		b = oc.poly_mul_num( b, -1 ) 
-
-		# -(a*s + e) + p*sk^2
-		b = oc.poly_add_poly( ss, b ) 
-		#b = ss + b
-
-		b = oc.poly_mod( b, self.rlk_ntt.N ) 
-		#b = b % (self.q * self.p)
-
-		self.rlk = (b, a)
-		return 
+			# b = -(ai*sk + ei) + (T^i)*(sk^2)
+			b = b + ss
+			b = b % self.q
+			
+			self.rlk_V1.append( (b,ai) )
 
 	def gen_op_counters(self,bitwidth=32):
 		"""
@@ -469,9 +431,17 @@ class NTT_BFV():
 		t = self.t
 		invq = self.ntt.extended_euclidean( self.q, self.ntt.N )
 
-		x = [i.copy() for i in x]
-		x[0] = oc.poly_mul_num(x[0], t)
-		x[1] = oc.poly_mul_num(x[1], t)
+		x = [x[0], x[1]]
+		x[0] = self.ntt.merge_iNTT( x[0] )
+		x[1] = self.ntt.merge_iNTT( x[1] )
+		x[0] = x[0] * self.t
+		x[0] = x[0] / self.q
+		x[0] = x[0].round()
+		x[1] = x[1] * self.t
+		x[1] = x[1] / self.q
+		x[1] = x[1].round()
+		x[0] = self.ntt.merge_NTT( x[0] )
+		x[1] = self.ntt.merge_NTT( x[1] )
 
 		# c0 = ct0[0]*ct1[0]
 		c0 = oc.dotProduct( x[0], y[0] ) #c0 = x[0] * y[0]
@@ -509,8 +479,9 @@ class NTT_BFV():
 		c2	- Polynomial from ctmult (sk^2)
 
 		----- Calculation -----
-		c20	= ( c2 * rlk[0] ) / p
-		c21 = ( c2 * rlk[1] ) / p
+		c2i = basechange( c2, T )[i]
+		c20	= ( c2i * rlk_V1[i][0] ) 
+		c21 = ( c2i * rlk_V1[i][1] ) 
 
 		c0' = c0 + c20
 		c1' = c1 + c21
@@ -520,45 +491,39 @@ class NTT_BFV():
 		ct'	- Ciphertext relinearized from 3 elements to 2 elements
 
 		"""
-
-		# set relin object
+		# set relin counter object
 		oc = self.counters['relin']
 
-		'''
-		c0 = self.ntt.merge_iNTT( c0 )
-		c0 = self.rlk_ntt.merge_NTT( c0 )
-		c1 = self.ntt.merge_iNTT( c1 )
-		c1 = self.rlk_ntt.merge_NTT( c1 )
-		'''
 		c2 = self.ntt.merge_iNTT( c2 )
-		c2 = self.rlk_ntt.merge_NTT( c2 )
+		c2i = []
 
-		# invp = self.rlk_ntt.inverse_mod( self.p, self.rlk_ntt.N )
-		invp = self.rlk_ntt.extended_euclidean( self.p, self.rlk_ntt.N )
+		for i in range(self.l):
+			mask = self.T ** i
 
-		# c20 = (c2 * rlk[0]/p)
-		c20 = oc.dotProduct( c2, self.rlk[0] ) #c20 = c2 * self.rlk[0]	
-		c20 = oc.poly_mul_num( c20, invp ) #c20 = c20 / self.p
-		c20 = self.rlk_ntt.merge_iNTT( c20 )
-		c20 = self.ntt.merge_NTT( c20 )
-		# c20.round()
-		# c20 = oc.poly_mod( c20, self.q ) #c20 = c20 % self.q
+			ci = []
+			for j in range(self.n):
+				ci.append( (c2[j] & mask) >> i )
 
-		# c21 = (c2 * rlk[1]/p)
-		c21 = oc.dotProduct( c2, self.rlk[1] ) #c21 = c2 * self.rlk[1]	
-		c21 = oc.poly_mul_num( c21, invp ) #c21 = c21 / self.p
-		c21 = self.rlk_ntt.merge_iNTT( c21 )
-		c21 = self.ntt.merge_NTT( c21 )
-		# c21.round()
-		# c21 = oc.poly_mod( c21, self.q ) #c21 = c21 % self.q
+			ci = Poly( ci )
+			ci = self.ntt.merge_NTT( ci )
+			c2i.append( ci )
 
-		# c0' = c0 + c20
-		# c1' = c1 + c21
-		_c0 = oc.poly_add_poly( c0, c20 ) #_c0 = c0 + c20
-		_c1 = oc.poly_add_poly( c1, c21 ) #_c1 = c1 + c21
+		c20 = Poly()
+		c21 = Poly()
 
-		_c0 = oc.poly_mod( _c0, self.q ) #_c0 = _c0 % self.q
-		_c1 = oc.poly_mod( _c1, self.q ) #_c1 = _c1 % self.q
+		for i in range(self.l):
+			x = oc.dotProduct(self.rlk_V1[i][0], c2i[i])
+			
+			y = oc.dotProduct(self.rlk_V1[i][1], c2i[i])
+
+			c20 = c20 + x
+			c21 = c21 + y
+
+		c20 = c20 % self.q
+		c21 = c21 % self.q
+
+		_c0 = c0 + c20
+		_c1 = c1 + c21
 
 		return (_c0, _c1)
 

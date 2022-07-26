@@ -89,6 +89,7 @@ class BFV():
 		self.gen_sk()
 		self.gen_pk()
 		self.gen_rlk()
+		self.gen_rlk_V1()
 		
 	def gen_sk(self):
 		"""
@@ -229,6 +230,57 @@ class BFV():
 
 		self.rlk = (b, a)
 		return 
+
+	def gen_rlk_V1(self):
+		"""
+		Generate a relinearization key for ciphertext multiplication
+
+		----- Random Polynomials -----
+		ai <- Uniformat Distribution over q
+		ei <- Normal Distribution with (mean = 0, standard deviation = self.std )
+
+		----- Calculation -----
+		T = 2
+		bi = -(ai*sk + ei) + (T^i)*(sk^2)
+
+		----- Result -----
+		rlk = [(bi , ai)]
+
+		"""
+
+		# define T, set T == 2
+		self.T = 2
+		T = self.T
+
+		# define l, l = logT(q)
+		self.l = int(np.log(self.q)//np.log(T))+1
+		l = self.l
+
+		# this will hold different masked versions
+		# of the keys with T^i for i=[0,l)
+		self.rlk_V1 = []
+
+		for i in range(l):
+			ei = self.gen_normal_poly()
+			ai = self.gen_uniform_poly()
+
+			# T^i * sk^2
+			Ti = T ** i
+			ss = self.sk * self.sk
+			quo,ss = ss // self.fn
+			ss = ss * Ti
+
+			# -(ai*sk + ei)
+			b = ai * self.sk
+			quo,b = b // self.fn
+			b = b + ei
+			b = b * -1
+
+			# b = -(ai*sk + ei) + (T^i)*(sk^2)
+			b = b + ss
+			b = b % self.q
+			
+			self.rlk_V1.append( (b,ai) )
 
 	def gen_op_counters(self,bitwidth=32):
 		"""
@@ -468,9 +520,17 @@ class BFV():
 		c2.round()
 		c2 = oc.poly_mod( c2, self.q ) #c2 = c2 % self.q
 
-		ret = self.relin(c0,c1,c2)
+		# ret = self.relin(c0,c1,c2)
+		_ret = self.relin_V1(c0,c1,c2)
+		"""
+		print(f'relin==relin_V1: {ret==_ret}')
+		print(f'ret:  ({ret[0]})')
+		print(f'_ret: ({_ret[0]})')
+		print(f'\n')
+		"""
 
-		return ret
+		# return ret
+		return _ret
 
 	def relin(self,c0,c1,c2):
 		"""
@@ -519,6 +579,66 @@ class BFV():
 
 		_c0 = oc.poly_mod( _c0, self.q ) #_c0 = _c0 % self.q
 		_c1 = oc.poly_mod( _c1, self.q ) #_c1 = _c1 % self.q
+
+		return (_c0, _c1)
+
+	def relin_V1(self, c0, c1, c2):
+		"""
+		Take a ciphertext with 3 polynomials and perform a relinearization
+		with the relin key to return a ciphertext of 2 polynomials
+
+		----- Arguments -----
+		c0	- Polynomial from ctmult
+		c1	- Polynomial from ctmult (sk)
+		c2	- Polynomial from ctmult (sk^2)
+
+		----- Calculation -----
+		c2i = basechange( c2, T )[i]
+		c20	= ( c2i * rlk_V1[i][0] ) 
+		c21 = ( c2i * rlk_V1[i][1] ) 
+
+		c0' = c0 + c20
+		c1' = c1 + c21
+		ct' = (c0',c1')
+
+		----- Output -----
+		ct'	- Ciphertext relinearized from 3 elements to 2 elements
+
+		"""
+
+		c2i = []
+
+		for i in range(self.l):
+			mask = self.T ** i
+
+			ci = []
+			for j in range(self.n):
+				ci.append( (c2[j] & mask) >> i )
+
+			ci = Poly( ci )
+			c2i.append( ci )
+
+		c20 = Poly()
+		c21 = Poly()
+
+		for i in range(self.l):
+			x = self.rlk_V1[i][0] * c2i[i]
+			quo,x = x // self.fn
+			
+			y = self.rlk_V1[i][1] * c2i[i]
+			quo,y = y // self.fn
+
+			c20 = c20 + x
+			c21 = c21 + y
+
+		c20 = c20 % self.q
+		c21 = c21 % self.q
+
+		_c0 = c0 + c20
+		_c1 = c1 + c21
+
+		_c0 = _c0 % self.q
+		_c1 = _c1 % self.q
 
 		return (_c0, _c1)
 

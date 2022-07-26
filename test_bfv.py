@@ -12,11 +12,13 @@ import pdb
 
 def main():
 	func = mont_test
+	# func = test_multiplication
+	# test_func(n=100,func=func)
 	ntt_test()
 	# generate_data()
 	# mont_test()
 	# main_test()
-	#test_multiplication()
+	# test_multiplication()
 	#large_q()
 	#mult_enc()
 	# testing_many_multiplication()
@@ -102,15 +104,15 @@ def test_multiplication():
 
 	# q= 2**30, t= 2**1, n=2**10
 	# lpr = BFV(t=2,q=2**256,n=2**10,std=2.0)
-	lpr = BFV(t=2**3,q=2**15,n=2**5,std=2.0,h=2**1)
+	lpr = BFV(t=2**1,q=2**15,n=2**4,std=2.0,h=2**1)
 
 	# generate the two random numbers between [0,1]
 	#x = 0
 	#y = 0
 	x = np.random.randint(0,2)
 	y = np.random.randint(0,2)
-	x = 2
-	y = 3
+	# x = 2
+	# y = 3
 	print(f'{x} and {y} are randomly generated')
 	print(' ')
 
@@ -473,21 +475,21 @@ def ntt_test():
 	# lpr = BFV(q=2**10,t=2,n=2**10,h=64,bitwidth=32)
 	'''
 	
-	# lpr = NTT_BFV(q=12289,t=2,n=2**10,h=64,bitwidth=32)
-	lpr = BFV(q=2**15,t=2,n=2**6,h=4,bitwidth=32)
+	lpr = NTT_BFV(q=12289,t=2,n=2**10,h=64,bitwidth=32)
+	# lpr = BFV(q=2**15,t=2,n=2**8,h=1,std=0.5,bitwidth=32)
 
 	# generate a plaintext
 	pt = np.random.randint(0,2)
-	# b = np.random.randint(0,2)
+	b = np.random.randint(0,2)
 	print(f'pt: {pt}')
-	# print(f'b:  {b}')
+	print(f'b:  {b}')
 
 	# encrypt the plaintext
 	ct = lpr.encrypt(pt)
-	# ctb = lpr.encrypt( b )
+	ctb = lpr.encrypt( b )
 
-	# ctc = lpr.ctmult( ct, ctb )
-	ctc = ct
+	ctc = lpr.ctmult( ct, ctb )
+	# ctc = ct
 
 	# decrypt the ciphertext
 	print( lpr.decrypt(ctc) )
@@ -502,7 +504,7 @@ def ntt_test():
 
 	# print the results
 	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
-	print(f'{pt==recovered_pt}')
+	print(f'{pt*b==recovered_pt}')
 	print(' ')
 	lpr.print_counter_info()
 
