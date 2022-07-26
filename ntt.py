@@ -366,22 +366,37 @@ def test_addition():
 	print(f'c==mc: {c==mc}')
 
 def mult():
-	sz = 2**2
-	ntt = NTT(sz,2**8)
+	sz = 2**5
+	ntt = NTT(sz,2**9)
+	ntt.find_working_mod(ntt.N)
+	ntt.generate_params()
+	# ntt.N = 257
+	# ntt.psi = 64
+	# ntt.invpsi = 253
+	'''
+	ntt.N = 73
+	ntt.psi = 10
+	ntt.invpsi = 22
+	'''
 
 	arr = []
-	brr = []
+	# brr = []
 	for i in range(sz):
 		arr.append( randint(0,ntt.N//2) )
-		brr.append( randint(0,ntt.N) )
+		# brr.append( randint(0,ntt.N) )
 
 	a = Poly( arr )
 	a = a * 2
-	b = Poly( brr )
+	# b = Poly( brr )
 
 	merge_a = ntt.merge_NTT( a )
 
-	half = ntt.extended_euclidean( 2, ntt.N )
+	half = ntt.extended_euclidean( 2*ntt.n, ntt.N )
+
+	print(f'half: {half}')
+	print(f'ntt.N:      {ntt.N}')
+	print(f'ntt.psi:    {ntt.psi}')
+	print(f'ntt.invpsi: {ntt.invpsi}')
 
 	merge_c = merge_a * half
 	merge_c = merge_c % ntt.N

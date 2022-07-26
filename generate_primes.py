@@ -86,7 +86,7 @@ def generatePickle():
 	# primes = Sieve(2**20)
 	primes = SieveOfEratosthenes(2**20)
 	return
-	with open('primes.pickle','wb') as f:
+	with open('./bin/primes.pickle','wb') as f:
 		pkl.dump( primes, f )
 
 if __name__ == '__main__':

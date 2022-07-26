@@ -68,7 +68,7 @@ def test():
 def test_ct_mult():
 	print('Testing ct_mult')
 
-	es = CKKS(M=2**3, delta=2**20, q0=2**25, h=64, L=4)
+	es = CKKS(M=2**7, delta=2**20, q0=2**25, h=4, L=1)
 
 	za = [ 1 + 2j, 3 - 4j ]
 	zb = [ 1.5 + 0j, 0 + 1j ]
@@ -106,7 +106,15 @@ def test_ct_mult():
 	print(f'zb: {zb}')
 	# print(f'zd: {zd}')
 	print(f'za * zb = zc')
-	print(f'zc: {zc}')
+	print(f'zc: ',end='[')
+	print(f'({round(zc[0].real)}+{round(zc[0].imag)}j)',end='')
+	for ind,c in enumerate(zc):
+		if ind == 0:
+			continue
+		print(f', ({round(c.real)}+{round(c.imag)}j)',end='')
+		# print(f', {c:1.0g}',end='')
+	print(f']')
+	# print(f'zc: {zc}')
 	print(' ')
 	es.print_counter_info()
 
