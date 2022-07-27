@@ -281,8 +281,8 @@ class OperationsCounter():
 			for i in range(m):
 				jFirst = 2 * i * k
 				jLast = jFirst + k
-				self.mul = self.bitmult(2 * i * k)
-				self.add = self.bitadd(jFirst + k)
+				self.mul += self.bitmult(2 * i * k)
+				self.add += self.bitadd(jFirst + k)
 
 				wi = psi[ m+i ]
 				for j in range(jFirst,jLast):
@@ -319,8 +319,8 @@ class OperationsCounter():
 			for i in range(m):
 				jFirst = 2 * i * k
 				jLast = jFirst + k
-				self.mul = self.bitmult(2 * i * k)
-				self.add = self.bitadd(jFirst + k)
+				self.mul += self.bitmult(2 * i * k)
+				self.add += self.bitadd(jFirst + k)
 
 				wi = invpsi[ m+i ]
 				for j in range(jFirst,jLast):

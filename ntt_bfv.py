@@ -73,9 +73,16 @@ class NTT_BFV():
 		self.ntt.invpsi = 16233
 		'''
 
+		'''
 		# n=2**10, q=2**10
 		self.ntt.psi = 1945
 		self.ntt.invpsi = 4050
+		'''
+
+		# n=2**5, q=2**15
+		self.ntt.N = 32833
+		self.ntt.psi = 4256
+		self.ntt.invpsi = 18754
 
 		self.q = self.ntt.N
 		self.t = t
@@ -163,12 +170,17 @@ class NTT_BFV():
 		# generated from a center of 0 and std of 2
 		e = self.gen_normal_poly()
 
+		one = self.ntt.extended_euclidean( self.ntt.n, self.ntt.N )
+		neg_one = one * -1
+		neg_one = neg_one % self.ntt.N
+		neg_one = -1
+
 		# create a new polynomial _a which is -a
-		_a = oc.poly_mul_num(a, -1) 
+		_a = oc.poly_mul_num(a, neg_one) 
 		#_a = a * -1
 
 		# then set e = -e
-		e = oc.poly_mul_num(e, -1) 
+		e = oc.poly_mul_num(e, neg_one) 
 		#e = e * -1
 
 		# breakpoint()
@@ -211,6 +223,11 @@ class NTT_BFV():
 		# of the keys with T^i for i=[0,l)
 		self.rlk_V1 = []
 
+		one = self.ntt.extended_euclidean( self.ntt.n, self.ntt.N )
+		neg_one = one * -1
+		neg_one = neg_one % self.ntt.N
+		neg_one = -1
+
 		for i in range(l):
 			ei = self.gen_normal_poly()
 			ai = self.gen_uniform_poly()
@@ -226,7 +243,7 @@ class NTT_BFV():
 			# -(ai*sk + ei)
 			b = oc.dotProduct(ai, self.sk)
 			b = b + ei
-			b = b * -1
+			b = b * neg_one
 
 			# b = -(ai*sk + ei) + (T^i)*(sk^2)
 			b = b + ss
@@ -429,42 +446,83 @@ class NTT_BFV():
 		oc = self.counters['mul']
 
 		t = self.t
-		invq = self.ntt.extended_euclidean( self.q, self.ntt.N )
 
-		x = [x[0], x[1]]
-		x[0] = self.ntt.merge_iNTT( x[0] )
-		x[1] = self.ntt.merge_iNTT( x[1] )
-		x[0] = x[0] * self.t
-		x[0] = x[0] / self.q
-		x[0] = x[0].round()
-		x[1] = x[1] * self.t
-		x[1] = x[1] / self.q
-		x[1] = x[1].round()
-		x[0] = self.ntt.merge_NTT( x[0] )
-		x[1] = self.ntt.merge_NTT( x[1] )
+		i = [None,None]
+		j = [None,None]
+		i[0] = oc.merge_iNTT( self.ntt, x[0] )
+		i[1] = oc.merge_iNTT( self.ntt, x[1] )
+		j[0] = oc.merge_iNTT( self.ntt, y[0] )
+		j[1] = oc.merge_iNTT( self.ntt, y[1] )
+
+		'''
+		i[0] = self.ntt.merge_iNTT( x[0] )
+		i[1] = self.ntt.merge_iNTT( x[1] )
+		j[0] = self.ntt.merge_iNTT( y[0] )
+		j[1] = self.ntt.merge_iNTT( y[1] )
+		'''
 
 		# c0 = ct0[0]*ct1[0]
-		c0 = oc.dotProduct( x[0], y[0] ) #c0 = x[0] * y[0]
-		# c0 = oc.poly_mul_num( c0, t ) #c0 = c0 * ( self.t / self.q )
-		# c0 = oc.poly_mul_num( c0, invq ) #c0 = c0 * ( self.t / self.q )
-		c0 = oc.poly_mod( c0, self.q ) #c0 = c0 % self.q
+		# c0 = oc.dotProduct( x[0], y[0] ) #c0 = x[0] * y[0]
+		# c0 = oc.poly_mod( c0, self.q ) #c0 = c0 % self.q
+
+		d0 = oc.poly_mul_poly(i[0], j[0])
+		quo, d0 = oc.poly_div_poly(d0, self.fn)
+		d0 = oc.poly_mul_num(d0, self.t)
+		d0 = oc.poly_div_num(d0, self.q)
+		d0.round()
+		d0 = oc.poly_mod(d0, self.q)
+
+		'''
+		print(f'c0: {self.ntt.merge_iNTT(c0)}')
+		print(f'd0: {d0}')
+		assert self.ntt.merge_iNTT(c0) == d0
+		'''
 
 		# c1 = ct0[0]*ct1[1] + ct0[1]*ct1[0]
 		ca = oc.dotProduct( x[0], y[1] )
 		cb = oc.dotProduct( x[1], y[0] )
 		c1 = oc.poly_add_poly( ca, cb ) #c1 = (x[0]*y[1]) + (x[1]*y[0])
+		c1 = self.ntt.merge_NTT( c1 )
 
-		# c1 = oc.poly_mul_num( c1, t ) #c1 = c1 * ( self.t / self.q )
-		# c1 = oc.poly_mul_num( c1, invq ) #c1 = c1 * ( self.t / self.q )
 		c1 = oc.poly_mod( c1, self.q ) #c1 = c1 % self.q
+
+		da = oc.poly_mul_poly(i[0], j[1])
+		db = oc.poly_mul_poly(i[1], j[0])
+		d1 = oc.poly_add_poly(da, db)
+		quo, d1 = oc.poly_div_poly(d1, self.fn)
+		d1 = oc.poly_mul_num(d1, self.t)
+		d1 = oc.poly_div_num(d1, self.q)
+		d1.round()
+		d1 = oc.poly_mod(d1, self.q)
 
 		# c2 = ct0[1]*ct1[1]
 		c2 = oc.dotProduct( x[1], y[1] ) #c2 = x[1] * y[1]
-		# c2 = oc.poly_mul_num( c2, t ) #c2 = c2 * ( self.t / self.q )
-		# c2 = oc.poly_mul_num( c2, invq ) #c2 = c2 * ( self.t / self.q )
 		c2 = oc.poly_mod( c2, self.q ) #c2 = c2 % self.q
 
-		ret = self.relin(c0,c1,c2)
+		d2 = oc.poly_mul_poly(i[1], j[1])
+		quo, d2 = oc.poly_div_poly(d2, self.fn)
+		d2 = oc.poly_mul_num(d2, self.t)
+		d2 = oc.poly_div_num(d2, self.q)
+		d2.round()
+		d2 = oc.poly_mod(d2, self.q)
+
+		d0 = oc.merge_NTT(self.ntt, d0 )
+		d1 = oc.merge_NTT(self.ntt, d1 )
+		d2 = oc.merge_NTT(self.ntt, d2 )
+
+		ret = self.relin(d0,d1,d2)
+
+		r0 = d0
+		r1 = oc.dotProduct( d1, self.sk )
+		r2 = oc.dotProduct( d2, oc.dotProduct( self.sk, self.sk ) )
+
+		r = r0 + r1 + r2
+		r = self.ntt.merge_iNTT( r )
+		r = r * self.t
+		r = r / self.q
+		r.round()
+		r = r % self.t
+		# print(f'{r}')
 
 		return ret
 
@@ -494,7 +552,8 @@ class NTT_BFV():
 		# set relin counter object
 		oc = self.counters['relin']
 
-		c2 = self.ntt.merge_iNTT( c2 )
+		# c2 = self.ntt.merge_iNTT( c2 )
+		c2 = oc.merge_iNTT( self.ntt, c2 )
 		c2i = []
 
 		for i in range(self.l):
@@ -505,7 +564,7 @@ class NTT_BFV():
 				ci.append( (c2[j] & mask) >> i )
 
 			ci = Poly( ci )
-			ci = self.ntt.merge_NTT( ci )
+			ci = oc.merge_NTT( self.ntt, ci )
 			c2i.append( ci )
 
 		c20 = Poly()
@@ -516,14 +575,17 @@ class NTT_BFV():
 			
 			y = oc.dotProduct(self.rlk_V1[i][1], c2i[i])
 
-			c20 = c20 + x
-			c21 = c21 + y
+			c20 = oc.poly_add_poly(c20, x)
+			c21 = oc.poly_add_poly(c21, y)
 
-		c20 = c20 % self.q
-		c21 = c21 % self.q
+		# c20 = c20 % self.q
+		# c21 = c21 % self.q
 
-		_c0 = c0 + c20
-		_c1 = c1 + c21
+		_c0 = oc.poly_add_poly(c0, c20)
+		_c1 = oc.poly_add_poly(c1, c21)
+
+		_c0 = oc.poly_mod(_c0, self.q)
+		_c1 = oc.poly_mod(_c1, self.q)
 
 		return (_c0, _c1)
 
