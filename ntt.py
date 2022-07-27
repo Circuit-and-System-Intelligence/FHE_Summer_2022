@@ -368,8 +368,8 @@ def test_addition():
 def mult():
 	sz = 2**5
 	ntt = NTT(sz,2**9)
-	ntt.find_working_mod(ntt.N)
-	ntt.generate_params()
+	# ntt.find_working_mod(ntt.N)
+	# ntt.generate_params()
 	# ntt.N = 257
 	# ntt.psi = 64
 	# ntt.invpsi = 253
@@ -378,6 +378,9 @@ def mult():
 	ntt.psi = 10
 	ntt.invpsi = 22
 	'''
+	ntt.N = 577
+	ntt.psi = 557
+	ntt.invpsi = 375
 
 	arr = []
 	# brr = []
@@ -391,7 +394,10 @@ def mult():
 
 	merge_a = ntt.merge_NTT( a )
 
-	half = ntt.extended_euclidean( 2*ntt.n, ntt.N )
+	half = ntt.extended_euclidean( ntt.n//2 , ntt.N )
+	invq = ntt.extended_euclidean( ntt.n*ntt.N, ntt.N )
+	# half = half * -1
+	# half = half % ntt.N
 
 	print(f'half: {half}')
 	print(f'ntt.N:      {ntt.N}')
@@ -399,11 +405,12 @@ def mult():
 	print(f'ntt.invpsi: {ntt.invpsi}')
 
 	merge_c = merge_a * half
+	merge_c = merge_c * invq
 	merge_c = merge_c % ntt.N
 
 	mc = ntt.merge_iNTT( merge_c )
 
-	ma = a // 2
+	ma = a * 2
 	ma = ma % ntt.N
 
 	print(f'a: {a}')

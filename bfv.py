@@ -606,6 +606,9 @@ class BFV():
 
 		"""
 
+		# set relin object
+		oc = self.counters['relin']
+
 		c2i = []
 
 		for i in range(self.l):
@@ -622,23 +625,23 @@ class BFV():
 		c21 = Poly()
 
 		for i in range(self.l):
-			x = self.rlk_V1[i][0] * c2i[i]
-			quo,x = x // self.fn
+			x = oc.poly_mul_poly(self.rlk_V1[i][0], c2i[i])
+			quo,x = oc.poly_div_poly(x, self.fn)
 			
-			y = self.rlk_V1[i][1] * c2i[i]
-			quo,y = y // self.fn
+			y = oc.poly_mul_poly(self.rlk_V1[i][1], c2i[i])
+			quo,y = oc.poly_div_poly(y, self.fn)
 
-			c20 = c20 + x
-			c21 = c21 + y
+			c20 = oc.poly_add_poly(c20, x)
+			c21 = oc.poly_add_poly(c21, y)
 
-		c20 = c20 % self.q
-		c21 = c21 % self.q
+		# c20 = c20 % self.q
+		# c21 = c21 % self.q
 
-		_c0 = c0 + c20
-		_c1 = c1 + c21
+		_c0 = oc.poly_add_poly(c0, c20)
+		_c1 = oc.poly_add_poly(c1, c21)
 
-		_c0 = _c0 % self.q
-		_c1 = _c1 % self.q
+		_c0 = oc.poly_mod(_c0, self.q)
+		_c1 = oc.poly_mod(_c1, self.q)
 
 		return (_c0, _c1)
 

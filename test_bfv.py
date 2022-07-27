@@ -473,10 +473,13 @@ def ntt_test():
 
 	# lpr = NTT_BFV(q=40961,t=2,n=2**10,h=64,bitwidth=32)
 	# lpr = BFV(q=2**10,t=2,n=2**10,h=64,bitwidth=32)
-	'''
 	
-	lpr = NTT_BFV(q=12289,t=2,n=2**10,h=64,bitwidth=32)
-	# lpr = BFV(q=2**15,t=2,n=2**8,h=1,std=0.5,bitwidth=32)
+	# lpr = NTT_BFV(q=12289,t=2,n=2**10,h=4,bitwidth=32)
+	# lpr = BFV(q=2**10,t=2,n=2**10,h=4,std=0.5,bitwidth=32)
+	'''
+
+	lpr = NTT_BFV(q=32833,t=2,n=2**5,h=4,bitwidth=32)
+	# lpr = BFV(q=32833,t=2,n=2**5,h=4,bitwidth=32)
 
 	# generate a plaintext
 	pt = np.random.randint(0,2)
@@ -486,6 +489,7 @@ def ntt_test():
 
 	# encrypt the plaintext
 	ct = lpr.encrypt(pt)
+	# print(f'{lpr.decrypt(ct)}')
 	ctb = lpr.encrypt( b )
 
 	ctc = lpr.ctmult( ct, ctb )
@@ -506,6 +510,7 @@ def ntt_test():
 	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
 	print(f'{pt*b==recovered_pt}')
 	print(' ')
+	assert lpr.decrypt( ct )[0] == pt
 	lpr.print_counter_info()
 
 	return 1 if pt == recovered_pt else 0
