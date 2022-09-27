@@ -24,38 +24,24 @@ def test_encrypt():
 	print(f'es.p: {es.p}')
 	print(f'es.delta: {es.delta}')
 
-	#print(f'es.sk: {es.sk}')
-	#print(f'es.pk[0]: {es.pk[0]}')
-	#print(f'es.pk[1]: {es.pk[1]}')
-
-	#za = [ 1 + 2j, 3 - 4j ]
 	za = [ 1 + 2j ]
-	#zb = [ 1 + 0j, 0 + 1j ]
 
 	# plaintext vectors
 	ma = es.encode( za )
 	print( ma )
-	#mb = es.encode( zb )
 
 	# ciphertext polynomials
 	ca = es.encrypt( ma )
-	#print(f'ca[0][0]: {ca[0][0]}')
-	#print(f'ca[0][1]: {ca[0][1]}')
-	#cb = es.encrypt( mb )
+
 	print(f'es.delta = {es.delta}')
 	print(f'N+2*Bclean= {es.N + (2*ca[3])}')
-
-	#cc = es.ct_mult( ca, cb )
-	#cc = es.rescale( cc )
 
 	mc = es.decrypt( ca )
 	print( mc )
 
 	zc = es.decode( mc )
 	print(f'za: {za}')
-	#print(f'zb: {zb}')
 	print(f'zc: {zc}')
-
 	return
 
 
@@ -68,29 +54,18 @@ def test():
 def test_ct_mult():
 	print('Testing ct_mult')
 
-	es = CKKS(M=2**7, delta=2**20, q0=2**25, h=4, L=1)
+	es = CKKS(M=2**7, delta=2**20, q0=2**25, h=4, L=4)
 
 	za = [ 1 + 2j, 3 - 4j ]
 	zb = [ 1.5 + 0j, 0 + 1j ]
-	za = [ 1 + 0j ]
-	zb = [ 0 + 1j ]
-
-	zd = [ 0 + 5j ]
 
 	# plaintext vectors
 	ma = es.encode( za )
 	mb = es.encode( zb )
-	# md = es.encode( zd )
 
 	# ciphertext polynomials
 	ca = es.encrypt( ma )
 	cb = es.encrypt( mb )
-	# print( ca[0][0] )
-	# cd = es.encrypt( md )
-
-	# rescale 
-	# cd = es.simple_rescale( cd )
-	#cd = es.rescale( cd )
 
 	# ciphertext multiplication and rescaling
 	cc = es.ct_mult( ca, cb )
@@ -104,17 +79,14 @@ def test_ct_mult():
 
 	print(f'za: {za}')
 	print(f'zb: {zb}')
-	# print(f'zd: {zd}')
 	print(f'za * zb = zc')
 	print(f'zc: ',end='[')
-	print(f'({round(zc[0].real)}+{round(zc[0].imag)}j)',end='')
+	print(f'({zc[0].real:.3f}+{zc[0].imag:.3f}j)',end='')
 	for ind,c in enumerate(zc):
 		if ind == 0:
 			continue
-		print(f', ({round(c.real)}+{round(c.imag)}j)',end='')
-		# print(f', {c:1.0g}',end='')
+		print(f', ({c.real:.3f}+{c.imag:.3f}j)',end='')
 	print(f']')
-	# print(f'zc: {zc}')
 	print(' ')
 	es.print_counter_info()
 
@@ -127,10 +99,8 @@ def test_ct_add():
 	es.sk = Poly( [0,-1] )
 	es.pk = ( Poly([-98, 64]), Poly([64, 98]) )
 
-	#za = [ 1.2 + 2j, 3 - 4j ]
-	#zb = [ 2.3 + 2j,-3 + 4j ]
-	za = [ 1 + 2j ]
-	zb = [ 2 + 1j ]
+	za = [ 1.2 + 2j, 3 - 4j ]
+	zb = [ 2.3 + 2j,-3 + 4j ]
 
 	# plaintext vectors
 	ma = es.encode( za )

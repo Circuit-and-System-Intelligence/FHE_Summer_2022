@@ -84,6 +84,13 @@ class NTT_BFV():
 		self.ntt.psi = 4256
 		self.ntt.invpsi = 18754
 
+		'''
+		# n=2**10, q>2**20
+		self.ntt.N = 1054721
+		self.ntt.psi = 794881
+		self.ntt.invpsi = 961203
+		'''
+
 		self.q = self.ntt.N
 		self.t = t
 		self.n = n

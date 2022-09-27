@@ -77,3 +77,34 @@ class RNS(object):
 
 		x = x % self.P
 		return x
+
+	def mult(self, xi, yi):
+		# this will perform a multiplication
+		zi = [(i*j)%k for i,j,k in zip(xi,yi,self.primes)]
+		return zi
+
+	def add(self, xi, yi):
+		# this will perform an addition
+		zi = [(i+j)%k for i,j,k in zip(xi,yi,self.primes)]
+		return zi
+
+
+def main():
+
+	rsys = RNS([3,5,7,11,13,17,19,23])
+	# rsys = RNS([3,5,7,11])
+
+	x = 318
+	y = 116
+
+	rx = rsys.to_RNS(x)
+	ry = rsys.to_RNS(y)
+
+	rz = rsys.mult(rx,ry)
+
+	z = rsys.from_RNS(rz)
+	print(f'x*y: {(x*y)%rsys.P}')
+	print(f'z:   {z}')
+
+if __name__ == '__main__':
+	main()

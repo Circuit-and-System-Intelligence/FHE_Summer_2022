@@ -270,6 +270,18 @@ class NTT(object):
 
 		return revk
 
+	def print_root_unity(self, i=None):
+		# print the powers of psi mod N
+
+		if (i == None):
+			i = 2*self.n
+
+		for j in range(1,i+1):
+			x = self.psi ** j
+			if (x%self.N) == 1:
+				print(f'{i}: {x%self.N}')
+		
+
 def main():
 	sz = 2**10
 	ntt = NTT(sz,2**20)
@@ -294,16 +306,7 @@ def main():
 	print(' ')
 
 	pre_a = a.copy()
-	'''
-	pre_a[0] *= (ntt.w) ** 0
-	pre_a[1] *= (ntt.w) ** 1
-	pre_a[2] *= (ntt.w) ** 2
-	pre_a[3] *= (ntt.w) ** 3
-	pre_a[4] *= (ntt.w) ** 4
-	pre_a[5] *= (ntt.w) ** 5
-	pre_a[6] *= (ntt.w) ** 6
-	pre_a[7] *= (ntt.w) ** 7
-	'''
+
 	pre_a = pre_a % ntt.N
 
 	# n_a = ntt.NTT( pre_a )
@@ -373,11 +376,7 @@ def mult():
 	# ntt.N = 257
 	# ntt.psi = 64
 	# ntt.invpsi = 253
-	'''
-	ntt.N = 73
-	ntt.psi = 10
-	ntt.invpsi = 22
-	'''
+
 	ntt.N = 577
 	ntt.psi = 557
 	ntt.invpsi = 375
@@ -417,6 +416,8 @@ def mult():
 	print(f'ma: {ma}')
 	print(f'mc: {mc}')
 	print(f'ma==mc: {ma==mc}')
+
+	ntt.print_root_unity()
 
 
 def ntt_circuit():

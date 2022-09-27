@@ -521,7 +521,7 @@ class BFV():
 		c2 = oc.poly_mod( c2, self.q ) #c2 = c2 % self.q
 
 		# ret = self.relin(c0,c1,c2)
-		_ret = self.relin_V1(c0,c1,c2)
+		ret = self.relin_V1(c0,c1,c2)
 		"""
 		print(f'relin==relin_V1: {ret==_ret}')
 		print(f'ret:  ({ret[0]})')
@@ -529,8 +529,8 @@ class BFV():
 		print(f'\n')
 		"""
 
-		# return ret
-		return _ret
+		return ret
+		# return _ret
 
 	def relin(self,c0,c1,c2):
 		"""
@@ -610,16 +610,21 @@ class BFV():
 		oc = self.counters['relin']
 
 		c2i = []
+		base_change = c2.copy()
 
 		for i in range(self.l):
-			mask = self.T ** i
+			mask = self.T ** (self.l - i - 1)
 
 			ci = []
 			for j in range(self.n):
-				ci.append( (c2[j] & mask) >> i )
+				ci.append( base_change[j] // mask ) 
+				# ci.append( (c2[j] & mask) >> i )
 
+			base_change = base_change % mask
 			ci = Poly( ci )
 			c2i.append( ci )
+
+		c2i.reverse()
 
 		c20 = Poly()
 		c21 = Poly()
