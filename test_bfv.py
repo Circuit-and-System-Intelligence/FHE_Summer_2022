@@ -363,9 +363,13 @@ def large_q():
 def generate_data():
 	# this function will generate the data for increasing q and increasing d for rings (x^d + 1)
 
+	q = 2**10
+	n = 2**10
+
 	print('input file name')
 	fn = input()
 
+	'''
 	print('input qmin, qmax, qstep')
 	qmin = int(input())
 	qmax = int(input())
@@ -374,6 +378,7 @@ def generate_data():
 	nmin = int(input())
 	nmax = int(input())
 	nstep = int(input())
+	'''
 
 	with open(f"data/{fn}.csv","w") as f:
 		# f.write(f'q,d,enc_add,enc_mul,dec_add,dec_mul,key_add,key_mul\n')
@@ -476,6 +481,10 @@ def ntt_test():
 	
 	# lpr = NTT_BFV(q=12289,t=2,n=2**10,h=4,bitwidth=32)
 	# lpr = BFV(q=2**10,t=2,n=2**10,h=4,std=0.5,bitwidth=32)
+
+	# lpr = NTT_BFV(q=1054721,t=2,n=2**10,h=32,bitwidth=32)
+	# lpr = BFV(q=1054721,t=2,n=2**10,h=32,bitwidth=32)
+	# lpr = BFV(q=2**20,t=2,n=2**10,h=32,bitwidth=32)
 	'''
 
 	lpr = NTT_BFV(q=32833,t=2,n=2**5,h=4,bitwidth=32)
@@ -489,22 +498,13 @@ def ntt_test():
 
 	# encrypt the plaintext
 	ct = lpr.encrypt(pt)
-	# print(f'{lpr.decrypt(ct)}')
 	ctb = lpr.encrypt( b )
 
 	ctc = lpr.ctmult( ct, ctb )
-	# ctc = ct
 
 	# decrypt the ciphertext
 	print( lpr.decrypt(ctc) )
 	recovered_pt = lpr.decrypt(ctc)[0]
-	# recovered_pt = pt
-
-	'''
-	ctc = lpr.ctadd( ct, ctb )
-	c = lpr.decrypt( ctc )[0]
-	print(f'pt*b=c: {c==pt^b}')
-	'''
 
 	# print the results
 	print(f'original pt: {pt}\trecovered pt: {recovered_pt}')
